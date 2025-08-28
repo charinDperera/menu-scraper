@@ -1,0 +1,471 @@
+"use client"
+
+import { useState } from "react"
+import { ArrowLeft, Edit2, Trash2, Save, Upload } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
+import { Badge } from "@/components/ui/badge"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Label } from "@/components/ui/label"
+import { Switch } from "@/components/ui/switch"
+import { useRouter } from "next/navigation"
+
+interface AddOn {
+  addOnName: string
+  addOnTypeName: string
+  addOnSubTypeName: string
+  addOnPrice: number
+  priority: number
+}
+
+interface ProductVariant {
+  variantId: string
+  variantName: string
+  variantPrice: number
+  addOns: AddOn[]
+}
+
+interface ExtractedProduct {
+  id: string
+  productName: string
+  productAlternativeName: string
+  image: string
+  variants: ProductVariant[]
+  taxPercentage: number
+  isAlcoholicProduct: boolean
+}
+
+export default function MenuReviewPage() {
+  const router = useRouter()
+  const [editingProduct, setEditingProduct] = useState<ExtractedProduct | null>(null)
+  const [editingVariant, setEditingVariant] = useState<{ productId: string; variant: ProductVariant } | null>(null)
+  const [isProductDialogOpen, setIsProductDialogOpen] = useState(false)
+  const [isVariantDialogOpen, setIsVariantDialogOpen] = useState(false)
+
+  const [extractedProducts, setExtractedProducts] = useState<ExtractedProduct[]>([
+    {
+      id: "1",
+      productName: "Margherita Pizza",
+      productAlternativeName: "Classic Margherita",
+      image: "/margherita-pizza.png",
+      variants: [
+        {
+          variantId: "1-small",
+          variantName: 'Small (10")',
+          variantPrice: 12.99,
+          addOns: [
+            {
+              addOnName: "Extra Cheese",
+              addOnTypeName: "Toppings",
+              addOnSubTypeName: "Cheese",
+              addOnPrice: 2.5,
+              priority: 1,
+            },
+          ],
+        },
+        {
+          variantId: "1-large",
+          variantName: 'Large (14")',
+          variantPrice: 18.99,
+          addOns: [],
+        },
+      ],
+      taxPercentage: 8.5,
+      isAlcoholicProduct: false,
+    },
+    {
+      id: "2",
+      productName: "Caesar Salad",
+      productAlternativeName: "Fresh Caesar",
+      image: "/caesar-salad.png",
+      variants: [
+        {
+          variantId: "2-regular",
+          variantName: "Regular",
+          variantPrice: 9.99,
+          addOns: [
+            {
+              addOnName: "Grilled Chicken",
+              addOnTypeName: "Protein",
+              addOnSubTypeName: "Chicken",
+              addOnPrice: 4.0,
+              priority: 1,
+            },
+          ],
+        },
+      ],
+      taxPercentage: 8.5,
+      isAlcoholicProduct: false,
+    },
+  ])
+
+  const handleSaveProducts = () => {
+    console.log("Saving products:", extractedProducts)
+    router.push("/products?success=true")
+  }
+
+  const handleEditProduct = (product: ExtractedProduct) => {
+    setEditingProduct({ ...product })
+    setIsProductDialogOpen(true)
+  }
+
+  const handleSaveProduct = () => {
+    if (!editingProduct) return
+
+    setExtractedProducts((prev) => prev.map((product) => (product.id === editingProduct.id ? editingProduct : product)))
+    setIsProductDialogOpen(false)
+    setEditingProduct(null)
+  }
+
+  const handleEditVariant = (productId: string, variant: ProductVariant) => {
+    setEditingVariant({ productId, variant: { ...variant } })
+    setIsVariantDialogOpen(true)
+  }
+
+  const handleSaveVariant = () => {
+    if (!editingVariant) return
+
+    setExtractedProducts((prev) =>
+      prev.map((product) =>
+        product.id === editingVariant.productId
+          ? {
+              ...product,
+              variants: product.variants.map((v) =>
+                v.variantId === editingVariant.variant.variantId ? editingVariant.variant : v,
+              ),
+            }
+          : product,
+      ),
+    )
+    setIsVariantDialogOpen(false)
+    setEditingVariant(null)
+  }
+
+  const handleRemoveProduct = (productId: string) => {
+    setExtractedProducts((prev) => prev.filter((product) => product.id !== productId))
+  }
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      {/* Header */}
+      <header className="bg-green-500 text-white px-6 py-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-4">
+            <div className="text-xl font-bold">applova</div>
+          </div>
+          <div className="flex items-center space-x-4">
+            <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center">
+              <span className="text-sm">🔔</span>
+            </div>
+            <div className="flex items-center space-x-2">
+              <div className="w-8 h-8 bg-white/20 rounded-full"></div>
+              <span className="text-sm">CHARIN@GETAPPLOVA.COM</span>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      {/* Page Header */}
+      <div className="bg-white border-b px-6 py-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-4">
+            <Button variant="ghost" onClick={() => router.back()} className="text-gray-600 hover:text-gray-800">
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Back to Products
+            </Button>
+            <div>
+              <h1 className="text-2xl font-semibold text-gray-800">Review Extracted Menu Items</h1>
+              <p className="text-sm text-gray-500 mt-1">
+                Review and edit the products extracted from your menu before adding them
+              </p>
+            </div>
+          </div>
+          <div className="flex space-x-3">
+            <Button variant="outline" onClick={() => router.back()}>
+              Cancel
+            </Button>
+            <Button className="bg-green-500 hover:bg-green-600 text-white" onClick={handleSaveProducts}>
+              <Save className="w-4 h-4 mr-2" />
+              Save All Products ({extractedProducts.length})
+            </Button>
+          </div>
+        </div>
+      </div>
+
+      {/* Main Content */}
+      <div className="p-6">
+        <div className="max-w-6xl mx-auto">
+          <div className="grid gap-6">
+            {extractedProducts.map((product) => (
+              <Card key={product.id} className="overflow-hidden">
+                <CardHeader className="bg-gray-50 border-b">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-4">
+                      <div className="w-16 h-16 bg-gray-200 rounded-lg overflow-hidden">
+                        <img
+                          src={product.image || "/placeholder.svg"}
+                          alt={product.productName}
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                      <div>
+                        <CardTitle className="text-lg">{product.productName}</CardTitle>
+                        {product.productAlternativeName && (
+                          <p className="text-sm text-gray-500">{product.productAlternativeName}</p>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Badge variant="secondary">Tax: {product.taxPercentage}%</Badge>
+                      {product.isAlcoholicProduct && <Badge variant="destructive">Alcoholic</Badge>}
+                      <Button variant="ghost" size="sm" onClick={() => handleEditProduct(product)}>
+                        <Edit2 className="w-4 h-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleRemoveProduct(product.id)}
+                        className="text-red-600 hover:text-red-800"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </div>
+                </CardHeader>
+
+                <CardContent className="p-6">
+                  <div className="space-y-4">
+                    <h4 className="font-medium text-gray-800">Variants & Pricing</h4>
+                    {product.variants.map((variant) => (
+                      <div key={variant.variantId} className="border rounded-lg p-4 bg-gray-50">
+                        <div className="flex items-center justify-between mb-3">
+                          <div className="flex-1">
+                            <div className="flex items-center justify-between">
+                              <span className="font-medium">{variant.variantName}</span>
+                              <span className="text-lg font-semibold text-green-600">
+                                ${variant.variantPrice.toFixed(2)}
+                              </span>
+                            </div>
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleEditVariant(product.id, variant)}
+                            className="ml-2"
+                          >
+                            <Edit2 className="w-4 h-4" />
+                          </Button>
+                        </div>
+
+                        {variant.addOns.length > 0 && (
+                          <div>
+                            <h5 className="text-sm font-medium text-gray-700 mb-2">Add-ons</h5>
+                            <div className="space-y-2">
+                              {variant.addOns.map((addOn, index) => (
+                                <div
+                                  key={index}
+                                  className="flex items-center justify-between text-sm bg-white p-2 rounded border"
+                                >
+                                  <div>
+                                    <span className="font-medium">{addOn.addOnName}</span>
+                                    <span className="text-gray-500 ml-2">({addOn.addOnTypeName})</span>
+                                  </div>
+                                  <span className="text-green-600 font-medium">+${addOn.addOnPrice.toFixed(2)}</span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+
+          {extractedProducts.length === 0 && (
+            <div className="text-center py-16">
+              <div className="w-24 h-24 bg-gray-100 rounded-lg mx-auto mb-6 flex items-center justify-center">
+                <Upload className="w-12 h-12 text-gray-400" />
+              </div>
+              <h3 className="text-xl font-medium text-gray-800 mb-2">No products extracted</h3>
+              <p className="text-gray-500 mb-6">Please go back and upload a menu file to extract products.</p>
+              <Button onClick={() => router.back()}>
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                Back to Upload
+              </Button>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Product Edit Dialog */}
+      <Dialog open={isProductDialogOpen} onOpenChange={setIsProductDialogOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Edit Product</DialogTitle>
+          </DialogHeader>
+          {editingProduct && (
+            <div className="space-y-6">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="productName">Product Name</Label>
+                  <Input
+                    id="productName"
+                    value={editingProduct.productName}
+                    onChange={(e) => setEditingProduct({ ...editingProduct, productName: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="alternativeName">Alternative Name</Label>
+                  <Input
+                    id="alternativeName"
+                    value={editingProduct.productAlternativeName}
+                    onChange={(e) => setEditingProduct({ ...editingProduct, productAlternativeName: e.target.value })}
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="taxPercentage">Tax Percentage</Label>
+                  <Input
+                    id="taxPercentage"
+                    type="number"
+                    step="0.1"
+                    value={editingProduct.taxPercentage}
+                    onChange={(e) =>
+                      setEditingProduct({ ...editingProduct, taxPercentage: Number.parseFloat(e.target.value) })
+                    }
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="alcoholic">Alcoholic Product</Label>
+                  <div className="flex items-center space-x-2 pt-2">
+                    <Switch
+                      id="alcoholic"
+                      checked={editingProduct.isAlcoholicProduct}
+                      onCheckedChange={(checked) =>
+                        setEditingProduct({ ...editingProduct, isAlcoholicProduct: checked })
+                      }
+                    />
+                    <span className="text-sm text-gray-600">{editingProduct.isAlcoholicProduct ? "Yes" : "No"}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex justify-end space-x-3">
+                <Button variant="outline" onClick={() => setIsProductDialogOpen(false)}>
+                  Cancel
+                </Button>
+                <Button onClick={handleSaveProduct} className="bg-green-500 hover:bg-green-600">
+                  Save Changes
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Variant Edit Dialog */}
+      <Dialog open={isVariantDialogOpen} onOpenChange={setIsVariantDialogOpen}>
+        <DialogContent className="max-w-xl">
+          <DialogHeader>
+            <DialogTitle>Edit Variant</DialogTitle>
+          </DialogHeader>
+          {editingVariant && (
+            <div className="space-y-6">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="variantName">Variant Name</Label>
+                  <Input
+                    id="variantName"
+                    value={editingVariant.variant.variantName}
+                    onChange={(e) =>
+                      setEditingVariant({
+                        ...editingVariant,
+                        variant: { ...editingVariant.variant, variantName: e.target.value },
+                      })
+                    }
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="variantPrice">Price</Label>
+                  <Input
+                    id="variantPrice"
+                    type="number"
+                    step="0.01"
+                    value={editingVariant.variant.variantPrice}
+                    onChange={(e) =>
+                      setEditingVariant({
+                        ...editingVariant,
+                        variant: { ...editingVariant.variant, variantPrice: Number.parseFloat(e.target.value) },
+                      })
+                    }
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                <Label>Add-ons</Label>
+                {editingVariant.variant.addOns.map((addOn, index) => (
+                  <div key={index} className="grid grid-cols-3 gap-2 p-3 border rounded-lg">
+                    <Input
+                      placeholder="Add-on name"
+                      value={addOn.addOnName}
+                      onChange={(e) => {
+                        const newAddOns = [...editingVariant.variant.addOns]
+                        newAddOns[index] = { ...addOn, addOnName: e.target.value }
+                        setEditingVariant({
+                          ...editingVariant,
+                          variant: { ...editingVariant.variant, addOns: newAddOns },
+                        })
+                      }}
+                    />
+                    <Input
+                      placeholder="Type"
+                      value={addOn.addOnTypeName}
+                      onChange={(e) => {
+                        const newAddOns = [...editingVariant.variant.addOns]
+                        newAddOns[index] = { ...addOn, addOnTypeName: e.target.value }
+                        setEditingVariant({
+                          ...editingVariant,
+                          variant: { ...editingVariant.variant, addOns: newAddOns },
+                        })
+                      }}
+                    />
+                    <Input
+                      type="number"
+                      step="0.01"
+                      placeholder="Price"
+                      value={addOn.addOnPrice}
+                      onChange={(e) => {
+                        const newAddOns = [...editingVariant.variant.addOns]
+                        newAddOns[index] = { ...addOn, addOnPrice: Number.parseFloat(e.target.value) }
+                        setEditingVariant({
+                          ...editingVariant,
+                          variant: { ...editingVariant.variant, addOns: newAddOns },
+                        })
+                      }}
+                    />
+                  </div>
+                ))}
+              </div>
+
+              <div className="flex justify-end space-x-3">
+                <Button variant="outline" onClick={() => setIsVariantDialogOpen(false)}>
+                  Cancel
+                </Button>
+                <Button onClick={handleSaveVariant} className="bg-green-500 hover:bg-green-600">
+                  Save Changes
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+    </div>
+  )
+}
