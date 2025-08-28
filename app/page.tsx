@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState, useRef } from "react"
+import { useState, useRef, useEffect } from "react"
 import { Upload } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
 import { useRouter } from "next/navigation"
@@ -10,31 +10,32 @@ import { usePDFParse } from "@/hooks/use-pdf-parse"
 
 export default function HomePage() {
   const [isDragOver, setIsDragOver] = useState(false)
+  const [isClient, setIsClient] = useState(false)
   const router = useRouter()
   const fileInputRef = useRef<HTMLInputElement>(null)
   const { parsePDF, isParsing, result, error } = usePDFParse()
   
-  // Ensure we're on the client side
-  const isClient = typeof window !== 'undefined'
+  // Use useEffect to set client state after hydration
+  useEffect(() => {
+    setIsClient(true)
+  }, [])
 
   const handleFileUpload = async (files: FileList | null) => {
-    if (!isClient) return;
+    if (!isClient || !files || files.length === 0) return;
     
-    if (files && files.length > 0) {
-      const file = files[0]
-      
-      // Check if it's a PDF file
-      if (file.type === 'application/pdf') {
-        try {
-          await parsePDF(file)
-        } catch (error) {
-          console.error('Error parsing PDF:', error)
-        }
-      } else {
-        // For non-PDF files, keep existing behavior
-        console.log("Uploading file:", file.name)
-        router.push("/menu-review")
+    const file = files[0]
+    
+    // Check if it's a PDF file
+    if (file.type === 'application/pdf') {
+      try {
+        await parsePDF(file)
+      } catch (error) {
+        console.error('Error parsing PDF:', error)
       }
+    } else {
+      // For non-PDF files, keep existing behavior
+      console.log("Uploading file:", file.name)
+      router.push("/menu-review")
     }
   }
 
@@ -72,15 +73,15 @@ export default function HomePage() {
               </div>
 
               <div
-                className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors cursor-pointer ${
+                className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
                   isDragOver
                     ? "border-green-400 bg-green-50"
                     : "border-gray-300 hover:border-green-400 hover:bg-green-50"
-                }`}
-                onDrop={handleDrop}
-                onDragOver={handleDragOver}
-                onDragLeave={handleDragLeave}
-                onClick={handleZoneClick}
+                } ${isClient ? 'cursor-pointer' : 'cursor-not-allowed opacity-50'}`}
+                onDrop={isClient ? handleDrop : undefined}
+                onDragOver={isClient ? handleDragOver : undefined}
+                onDragLeave={isClient ? handleDragLeave : undefined}
+                onClick={isClient ? handleZoneClick : undefined}
               >
                 <div className="flex justify-center mb-4">
                   <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center">
@@ -88,16 +89,14 @@ export default function HomePage() {
                   </div>
                 </div>
                 <h3 className="text-lg font-medium text-gray-800 mb-2">Drop your menu file here, or click to browse</h3>
-                <p className="text-gray-500 mb-4">
-                  {isClient ? "Supports PDF, JPG, PNG files up to 10MB" : "Supports JPG, PNG files up to 10MB"}
-                </p>
+                <p className="text-gray-500 mb-4">Supports PDF, JPG, PNG files up to 10MB</p>
                 
                 {/* Hidden file input that gets triggered by the drop zone click */}
                 <input
                   ref={fileInputRef}
                   type="file"
                   className="hidden"
-                  accept={isClient ? ".pdf,.jpg,.jpeg,.png" : ".jpg,.jpeg,.png"}
+                  accept=".pdf,.jpg,.jpeg,.png"
                   onChange={(e) => handleFileUpload(e.target.files)}
                 />
               </div>
