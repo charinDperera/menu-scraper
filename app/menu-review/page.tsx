@@ -102,7 +102,7 @@ export default function MenuReviewPage() {
 
   const handleSaveProducts = () => {
     console.log("Saving products:", extractedProducts)
-    router.push("/products?success=true")
+          router.push("/?success=true")
   }
 
   const handleEditProduct = (product: ExtractedProduct) => {

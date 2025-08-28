@@ -1,0 +1,152 @@
+# Menu Scraper - Cursor Rules
+
+## Architecture Principles
+
+### 1. Server Components First (SSR Preferred)
+- **Default to server components** for pages to improve SEO, performance, and initial load times
+- Use `"use client"` **only when strictly required** (event handlers, hooks, browser APIs)
+- For simple read-only UI, prefer **pure server components**
+- Allow selective client-side rendering (CSR) for highly interactive flows (file uploads, progress states, previews)
+
+### 2. Client Components
+**Mark components with `"use client"` only if they need:**
+- Event handlers (onClick, onChange, onSubmit)
+- React hooks (useState, useEffect, useRouter)
+- Browser APIs (localStorage, window, document)
+
+**Do NOT add `"use client"` to:**
+- Layouts, wrappers, or purely static UI
+- Server-only logic (data fetching, LLM calls, OCR processing)
+
+### 3. Backend-for-Frontend (BFF) Pattern
+- **All server-side logic must live in `/app/api/` routes**
+- The BFF handles:
+  - File upload & validation
+  - OCR extraction from PDFs/images
+  - Sending OCR output to the LLM with meta prompt
+  - Mapping AI response to domain model
+  - Returning structured responses or error states
+- Pages should remain **thin (render + data fetching only)**
+
+### 4. Component Composition
+- **Break pages into small, focused components**
+- **Avoid monolithic page files (>100 lines)**
+- Store components in `/components/` with clear subfolders (ui/, forms/, layout/)
+- Favor composition over inheritance
+- Each component must follow **Single Responsibility Principle**
+
+### 5. Custom Hooks Pattern
+- **All client-side logic belongs in hooks under `/hooks/`**
+- Hooks handle:
+  - State management
+  - API calls
+  - Side effects (upload progress, retry)
+  - UI logic (form handling, validations)
+- Components should remain **focused on rendering**
+
+## File Structure
+```
+app/
+├── page.tsx                     # Entry page (server component)
+├── layout.tsx                   # Root layout (server component)
+├── api/                         # BFF layer (all server logic)
+│   ├── upload/route.ts          # File upload & OCR extraction
+│   ├── process/route.ts         # AI conversion logic
+│   └── products/route.ts        # Domain-level product mapping
+├── components/                   # Reusable components
+│   ├── ui/                      # Base UI
+│   ├── forms/                   # Upload & input forms
+│   └── layout/                  # Layout building blocks
+└── hooks/                       # Custom hooks
+    ├── use-upload.ts            # File upload logic
+    ├── use-process.ts           # AI processing logic
+    └── use-products.ts          # Domain model mapping
+```
+
+## Coding Standards
+
+### ✅ Server Components (SSR example)
+```tsx
+export default async function ProductsPage() {
+  const products = await fetchProducts() // Server-side data fetching
+  return (
+    <div>
+      <ProductList products={products} />
+      <UploadForm />
+    </div>
+  )
+}
+```
+
+### ✅ Client Components (CSR example)
+```tsx
+"use client"
+import { useUpload } from "@/hooks/use-upload"
+
+export function UploadForm() {
+  const { upload, isUploading } = useUpload()
+
+  return (
+    <form onSubmit={upload}>
+      {/* file input & button */}
+    </form>
+  )
+}
+```
+
+### ✅ Custom Hooks
+```tsx
+export function useUpload() {
+  const [isUploading, setIsUploading] = useState(false)
+
+  const upload = async (formData: FormData) => {
+    setIsUploading(true)
+    try {
+      const res = await fetch("/api/upload", { method: "POST", body: formData })
+      return await res.json()
+    } finally {
+      setIsUploading(false)
+    }
+  }
+
+  return { upload, isUploading }
+}
+```
+
+## Forbidden Patterns
+
+### ❌ Never Do This:
+- `"use client"` on page files
+- Mix server logic and client logic in the same component
+- Monolithic pages (>100 lines)
+- Business logic in components
+- Inline fetch calls in client components
+
+### ✅ Always Do This:
+- Start with server-first rendering
+- Extract logic into hooks
+- Keep BFF as the only place for business logic
+- Break UI into small, reusable components
+
+## Performance Guidelines
+- Use Next.js `<Image />` for all images
+- Lazy-load non-critical UI
+- Code-split across route boundaries
+- Avoid unnecessary client components (keep bundle size lean)
+- Use React Suspense for async loading states
+
+## Error Handling
+- **Server errors**: caught & returned from BFF routes
+- **Client errors**: managed in hooks with fallback states
+- **UI errors**: wrapped in error boundaries
+- **Validation**: must exist both client-side and server-side
+
+## Testing Considerations
+- Test hooks in isolation (unit)
+- Test BFF routes for correctness & error cases
+- Test server components with mocked data
+- Ensure components are pure (UI only, no business logic)
+
+---
+
+👉 **Remember**: This is a POC, so prioritize clarity, correctness, and extensibility over premature optimization. Keep a clean separation of SSR, CSR, and BFF logic so scaling later will be easy.

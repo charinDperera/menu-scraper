@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { useRouter } from "next/navigation"
 
-export default function ProductsPage() {
+export default function HomePage() {
   const [isDragOver, setIsDragOver] = useState(false)
   const router = useRouter()
 
@@ -18,7 +18,7 @@ export default function ProductsPage() {
       // In a real app, you'd upload the file and process it
       console.log("Uploading file:", file.name)
       // Navigate to review page with file data
-      router.push("/products/menu-review")
+      router.push("/menu-review")
     }
   }
 
@@ -62,7 +62,7 @@ export default function ProductsPage() {
       <div className="bg-white border-b px-6 py-4">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-semibold text-gray-800">Manage Products</h1>
+            <h1 className="text-2xl font-semibold text-gray-800">Menu Scraper</h1>
             <div className="flex items-center space-x-2 text-sm text-gray-500 mt-1">
               <span>Product Converter</span>
               <span>•</span>
@@ -193,4 +193,4 @@ export default function ProductsPage() {
       </div>
     </div>
   )
-}
+} 
