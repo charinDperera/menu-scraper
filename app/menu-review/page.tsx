@@ -148,24 +148,6 @@ export default function MenuReviewPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-green-500 text-white px-6 py-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-4">
-            <div className="text-xl font-bold">applova</div>
-          </div>
-          <div className="flex items-center space-x-4">
-            <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center">
-              <span className="text-sm">🔔</span>
-            </div>
-            <div className="flex items-center space-x-2">
-              <div className="w-8 h-8 bg-white/20 rounded-full"></div>
-              <span className="text-sm">CHARIN@GETAPPLOVA.COM</span>
-            </div>
-          </div>
-        </div>
-      </header>
-
       {/* Page Header */}
       <div className="bg-white border-b px-6 py-4">
         <div className="flex items-center justify-between">
