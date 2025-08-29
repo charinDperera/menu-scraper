@@ -1,4 +1,5 @@
 export { PDFService, type PDFParseResult } from './pdf-service';
 export { ImageService, type ImageParseResult, type TextBlock } from './image-service';
 export { FileUtils, type FileValidationResult } from './file-utils';
-export { llmService } from './llm-service'; 
+export { llmService } from './llm-service';
+export { coreApiService, type CoreApiProductResponse } from './core-api-service'; 

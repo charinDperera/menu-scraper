@@ -62,6 +62,11 @@ You will receive raw text extracted from menu documents. This text may contain:
 - Category headers and section dividers
 - Special offers, notes, or disclaimers
 - Pricing variations and add-ons
+- **Nutritional information (calories, fat, protein, carbs, etc.)**
+- **Allergen information and dietary restrictions**
+- **Preparation methods and cooking instructions**
+- **Ingredient lists and sourcing information**
+- **Portion sizes and serving information**
 
 ## Output Requirements
 Transform the raw text into a structured JSON format with the following structure:
@@ -118,7 +123,16 @@ Transform the raw text into a structured JSON format with the following structur
       ],
       "isActive": "boolean (optional)",
       "isAlcoholicProduct": "boolean (optional)",
-      "isFeatured": "boolean (optional)"
+      "isFeatured": "boolean (optional)",
+      "nutritionalInfo": {
+        "description": "string (optional)",
+        "nutritionalElements": [
+          {
+            "name": "string (optional)",
+            "value": "string (optional)"
+          }
+        ]
+      }
     }
   ]
 }
@@ -130,10 +144,11 @@ Transform the raw text into a structured JSON format with the following structur
 
 2. **Variants and Pricing**: 
    - **When size options exist** (e.g., Small, Medium, Large): Create separate variant types with appropriate names and prices
-   - **When no size options exist**: Use the format \`[base] - [base]\` for the variant name
+   - **When no size options exist**: Set variant name to "[base]" and variant type name to "[base]"
    - Extract numerical prices only, remove currency symbols
    - Handle price ranges (e.g., "$12-15" → create separate variants or use average)
    - Default currency is USD
+   - **Do not set stock quantities or isAutoRestockEnabled unless explicitly provided** - leave these as default values
 
 3. **Categories**: 
    - Extract category information as simple strings in the categories array
@@ -144,62 +159,70 @@ Transform the raw text into a structured JSON format with the following structur
    - Extract key ingredients or preparation methods
    - Keep descriptions concise and informative
    - Remove marketing language unless it describes the actual dish
+   - **IMPORTANT**: Look for nutritional information, allergens, and other structured data that might be embedded in descriptions
 
-5. **Special Attributes**:
+5. **Nutritional Information Extraction**:
+   - **Calories**: Look for patterns like "350 cal", "350 calories", "350 kcal"
+   - **Macronutrients**: Extract fat, protein, carbs when available (e.g., "12g protein", "25g fat")
+   - **Micronutrients**: Extract vitamins, minerals when mentioned
+   - **Serving Information**: Look for portion sizes, weights, dimensions
+   - **Allergen Information**: Extract common allergens (nuts, dairy, gluten, etc.)
+   - **Dietary Restrictions**: Identify vegetarian, vegan, gluten-free, etc.
+
+6. **Add-ons and Variants Detection**:
+   - **Look beyond obvious pricing structures** for add-on information
+   - **Scan descriptions and surrounding text** for:
+     - Topping options (e.g., "Add mushrooms +$2", "Extra cheese available")
+     - Size variations (e.g., "Available in 6", 8", 12" sizes")
+     - Preparation options (e.g., "Well done, medium, rare")
+     - Sauce choices (e.g., "Choose from: BBQ, Ranch, Honey Mustard")
+   - **Create add-on groups** when multiple options are available for the same category
+
+7. **Special Attributes**:
    - Identify alcoholic beverages (set isAlcoholicProduct: true)
    - Note if items are deliverable
    - Identify featured or special items
    - Set isActive to true by default
+   - **All active fields default to true**: isActive, activeForKiosk, activeForOrderAhead, activeForOrderAheadWebstore, activeForDigitalDining, activeForPOSRegister
+   - **Only set these fields to false if explicitly mentioned** in the menu text (e.g., "not available for delivery", "kiosk disabled", etc.)
 
-6. **Data Quality**:
+8. **Data Quality**:
    - Only include items that are clearly menu products
    - Skip headers, footers, and non-menu content
    - Maintain consistency in naming conventions
    - Handle missing data gracefully (use null/undefined for optional fields)
+   - **Extract ALL available information** - don't limit yourself to just obvious fields
 
-## Variant Handling Examples
+## Advanced Extraction Guidelines
 
-**Example 1: Size-based variants**
-\`\`\`
-Pizza Margherita
-Small $12.99 | Medium $15.99 | Large $18.99
-\`\`\`
-**Result:**
-\`\`\`json
-"variants": {
-  "types": [
-    {
-      "name": "Small",
-      "price": { "amount": 12.99, "currency": "USD" }
-    },
-    {
-      "name": "Medium", 
-      "price": { "amount": 15.99, "currency": "USD" }
-    },
-    {
-      "name": "Large",
-      "price": { "amount": 18.99, "currency": "USD" }
-    }
-  ]
-}
-\`\`\`
+1. **Scan Entire Menu Context**: Don't just look at individual product lines - scan surrounding text for:
+   - Add-on menus or topping lists
+   - Size charts or portion guides
+   - Nutritional information tables
+   - Allergen disclaimers
+   - Preparation instructions
 
-**Example 2: No size variants (use [base] - [base] format)**
-\`\`\`
-Caesar Salad $14.99
-\`\`\`
-**Result:**
-\`\`\`json
-"variants": {
-  "name": "[base] - [base]",
-  "types": [
-    {
-      "name": "[base]",
-      "price": { "amount": 14.99, "currency": "USD" }
-    }
-  ]
-}
-\`\`\`
+2. **Pattern Recognition**: Look for common patterns:
+   - "Add [item] +$[price]"
+   - "Available in [size1], [size2], [size3]"
+   - "[number] cal", "[number] calories", "[number] kcal"
+   - "Contains: [allergen1], [allergen2]"
+   - "Gluten-free", "Vegan", "Vegetarian"
+
+3. **Contextual Information**: Use category headers and section dividers to:
+   - Infer product categories
+   - Understand pricing structures
+   - Identify add-on availability
+   - Determine dietary restrictions
+
+4. **Data Completeness**: Strive to extract as much structured information as possible:
+   - If nutritional info exists, extract it
+   - If add-ons are mentioned, create proper add-on structures
+   - If variants exist, create proper variant structures
+   - If allergens are mentioned, extract them
+   - If preparation methods are described, include them
+
+Remember: **Extract ALL available information** - don't just focus on basic product details. Look for nutritional data, allergens, add-ons, variants, and other structured information that might be embedded in descriptions or scattered throughout the menu text.
 
 Return only the JSON response, no additional text or explanations.`;
   }
@@ -338,11 +361,11 @@ Return only the JSON response, no additional text or explanations.`;
       variants: product.variants,
       addOns: Array.isArray(product.addOns) ? product.addOns : [],
       isActive: product.isActive !== false, // Default to true
-      activeForKiosk: product.activeForKiosk,
-      activeForOrderAhead: product.activeForOrderAhead,
-      activeForOrderAheadWebstore: product.activeForOrderAheadWebstore,
-      activeForDigitalDining: product.activeForDigitalDining,
-      activeForPOSRegister: product.activeForPOSRegister,
+      activeForKiosk: product.activeForKiosk !== false, // Default to true
+      activeForOrderAhead: product.activeForOrderAhead !== false, // Default to true
+      activeForOrderAheadWebstore: product.activeForOrderAheadWebstore !== false, // Default to true
+      activeForDigitalDining: product.activeForDigitalDining !== false, // Default to true
+      activeForPOSRegister: product.activeForPOSRegister !== false, // Default to true
       createdDate: product.createdDate || new Date().toISOString(),
       priority: typeof product.priority === 'number' ? product.priority : undefined,
       taxes: Array.isArray(product.taxes) ? product.taxes : [],

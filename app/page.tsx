@@ -3,7 +3,7 @@
 import type React from "react"
 
 import { useState, useRef, useEffect } from "react"
-import { Upload, Brain, CheckCircle } from "lucide-react"
+import { Upload, Brain, CheckCircle, X } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { useRouter } from "next/navigation"
@@ -14,14 +14,27 @@ export default function HomePage() {
   const [isDragOver, setIsDragOver] = useState(false)
   const [isClient, setIsClient] = useState(false)
   const [currentStep, setCurrentStep] = useState<'upload' | 'processing' | 'llm-processing' | 'complete'>('upload')
+  const [showSuccessMessage, setShowSuccessMessage] = useState(false)
+  const [businessId, setBusinessId] = useState<string>('')
   const router = useRouter()
   const fileInputRef = useRef<HTMLInputElement>(null)
   const { parseFile, error } = useFileParser()
   const { processMenuData, error: llmError, lastResult } = useLLMProcess()
   
-  // Use useEffect to set client state after hydration
+  // Use useEffect to set client state after hydration and check for success message
   useEffect(() => {
     setIsClient(true)
+    
+    // Set business ID from environment variable
+    setBusinessId(process.env.NEXT_PUBLIC_BUSINESS_ID || 'Unknown Business')
+    
+    // Check if we're returning from a successful save
+    const urlParams = new URLSearchParams(window.location.search)
+    if (urlParams.get('success') === 'true') {
+      setShowSuccessMessage(true)
+      // Clear the URL parameter
+      window.history.replaceState({}, document.title, window.location.pathname)
+    }
   }, [])
 
   const handleFileUpload = async (files: FileList | null) => {
@@ -94,6 +107,29 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      {/* Success Message */}
+      {showSuccessMessage && (
+        <div className="bg-green-50 border-b border-green-200">
+          <div className="max-w-4xl mx-auto px-6 py-4">
+            <div className="flex items-center space-x-3">
+              <CheckCircle className="w-5 h-5 text-green-600" />
+              <div>
+                <h3 className="text-sm font-medium text-green-800">Products saved successfully!</h3>
+                <p className="text-sm text-green-700">
+                  Your Products have been successfully added to the Business - {businessId || 'Unknown Business'}
+                </p>
+              </div>
+              <button
+                onClick={() => setShowSuccessMessage(false)}
+                className="ml-auto text-green-400 hover:text-green-600"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Main Content */}
       <div className="p-6">
         <div className="max-w-4xl mx-auto">

@@ -3,4 +3,5 @@ export { useImageParse } from './use-image-parse';
 export { useFileParser } from './use-file-parser';
 export { useIsMobile } from './use-mobile';
 export { useToast } from './use-toast';
-export { useLLMProcess } from './use-llm-process'; 
+export { useLLMProcess } from './use-llm-process';
+export { useSaveProducts } from './use-save-products'; 

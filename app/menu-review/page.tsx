@@ -25,6 +25,7 @@ import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
 import { Textarea } from "@/components/ui/textarea"
 import { useRouter } from "next/navigation"
+import { useSaveProducts } from "@/hooks/use-save-products"
 import type { ProcessingResult, Product, AddOn, AddOnType, AddOnSubType } from "@/types/product-model"
 
 interface OriginalFileInfo {
@@ -89,6 +90,7 @@ export default function MenuReviewPage() {
   const [originalFileInfo, setOriginalFileInfo] = useState<OriginalFileInfo | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [expandedAddOns, setExpandedAddOns] = useState<Set<string>>(new Set())
+  const { saveProducts, isSaving, error: saveError, lastResult: saveResult, reset: resetSave } = useSaveProducts()
 
   useEffect(() => {
     // Load LLM processing results from sessionStorage
@@ -118,11 +120,27 @@ export default function MenuReviewPage() {
     }
   }, [router])
 
-  const handleSaveProducts = () => {
-    console.log("Saving products:", products)
-    // Here you would typically send the data to your API
-    // For now, we'll just redirect back with success
-    router.push("/?success=true")
+  const handleSaveProducts = async () => {
+    // Clear any previous errors
+    resetSave()
+    
+    try {
+      const result = await saveProducts(products)
+      
+      if (result.success) {
+        // Clear session storage
+        sessionStorage.removeItem("llmProcessingResult")
+        sessionStorage.removeItem("originalFileInfo")
+        
+        // Redirect back with success
+        router.push("/?success=true")
+      } else {
+        console.error("Failed to save products:", result.error)
+        // Error will be displayed by the hook
+      }
+    } catch (error) {
+      console.error("Error saving products:", error)
+    }
   }
 
   const handleEditProduct = (product: Product) => {
@@ -363,14 +381,47 @@ export default function MenuReviewPage() {
               <Button
                 className="bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg hover:shadow-xl transition-all duration-200"
                 onClick={handleSaveProducts}
+                disabled={isSaving}
               >
-                <Save className="w-4 h-4 mr-2" />
-                Save All Products ({products.length})
+                {isSaving ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-primary-foreground/20 border-t-primary-foreground rounded-full animate-spin mr-2" />
+                    Saving...
+                  </>
+                ) : (
+                  <>
+                    <Save className="w-4 h-4 mr-2" />
+                    Save All Products ({products.length})
+                  </>
+                )}
               </Button>
             </div>
           </div>
         </div>
       </div>
+
+      {/* Error and Success Messages */}
+      {saveError && (
+        <div className="max-w-7xl mx-auto px-6 py-3">
+          <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-4">
+            <div className="flex items-center space-x-2">
+              <div className="w-2 h-2 bg-destructive rounded-full"></div>
+              <span className="text-sm font-medium text-destructive">Error saving products: {saveError}</span>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {saveResult?.success && (
+        <div className="max-w-7xl mx-auto px-6 py-3">
+          <div className="bg-green-100 border border-green-200 rounded-lg p-4">
+            <div className="flex items-center space-x-2">
+              <div className="w-2 h-2 bg-green-600 rounded-full"></div>
+              <span className="text-sm font-medium text-green-800">Products saved successfully!</span>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Main Content */}
       <div className="max-w-7xl mx-auto p-6">
@@ -562,6 +613,21 @@ export default function MenuReviewPage() {
                     </div>
                   </div>
                 )}
+
+                {/* Nutritional Information */}
+                {product.nutritionalInfo && product.nutritionalInfo.nutritionalElements && product.nutritionalInfo.nutritionalElements.length > 0 && (
+                  <div className="space-y-3">
+                    <h4 className="font-semibold text-foreground">Nutritional Information</h4>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                      {product.nutritionalInfo.nutritionalElements.map((element, index) => (
+                        <div key={index} className="bg-muted/50 p-3 rounded-lg border border-border">
+                          <span className="text-sm font-medium text-foreground">{element.name || 'Unknown'}</span>
+                          <div className="text-lg font-bold text-primary">{element.value || 'N/A'}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </CardContent>
             </Card>
           ))}
@@ -707,6 +773,101 @@ export default function MenuReviewPage() {
                       {editingProduct.isActive !== false ? "Yes" : "No"}
                     </span>
                   </div>
+                </div>
+              </div>
+
+              {/* Nutritional Information */}
+              <div className="border-t pt-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-medium">Nutritional Information</h3>
+                  <Button 
+                    onClick={() => {
+                      const newElement = { name: '', value: '' };
+                      setEditingProduct({
+                        ...editingProduct,
+                        nutritionalInfo: {
+                          ...editingProduct.nutritionalInfo,
+                          nutritionalElements: [
+                            ...(editingProduct.nutritionalInfo?.nutritionalElements || []),
+                            newElement
+                          ]
+                        }
+                      });
+                    }} 
+                    size="sm" 
+                    className="bg-primary hover:bg-primary/90"
+                  >
+                    <Plus className="w-4 h-4 mr-2" />
+                    Add Nutritional Element
+                  </Button>
+                </div>
+                
+                <div className="space-y-3">
+                  {editingProduct.nutritionalInfo?.nutritionalElements?.map((element, index) => (
+                    <div key={index} className="flex items-center space-x-3 p-3 border rounded-lg bg-muted/30">
+                      <div className="flex-1">
+                        <Label className="text-sm">Name</Label>
+                        <Input
+                          size={1}
+                          value={element.name || ''}
+                          onChange={(e) => {
+                            const updatedElements = [...(editingProduct.nutritionalInfo?.nutritionalElements || [])];
+                            updatedElements[index] = { ...updatedElements[index], name: e.target.value };
+                            setEditingProduct({
+                              ...editingProduct,
+                              nutritionalInfo: {
+                                ...editingProduct.nutritionalInfo,
+                                nutritionalElements: updatedElements
+                              }
+                            });
+                          }}
+                          placeholder="e.g., Calories, Protein, Fat"
+                        />
+                      </div>
+                      <div className="flex-1">
+                        <Label className="text-sm">Value</Label>
+                        <Input
+                          size={1}
+                          value={element.value || ''}
+                          onChange={(e) => {
+                            const updatedElements = [...(editingProduct.nutritionalInfo?.nutritionalElements || [])];
+                            updatedElements[index] = { ...updatedElements[index], value: e.target.value };
+                            setEditingProduct({
+                              ...editingProduct,
+                              nutritionalInfo: {
+                                ...editingProduct.nutritionalInfo,
+                                nutritionalElements: updatedElements
+                              }
+                            });
+                          }}
+                          placeholder="e.g., 350, 25g, 12g"
+                        />
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          const updatedElements = editingProduct.nutritionalInfo?.nutritionalElements?.filter((_, i) => i !== index) || [];
+                          setEditingProduct({
+                            ...editingProduct,
+                            nutritionalInfo: {
+                              ...editingProduct.nutritionalInfo,
+                              nutritionalElements: updatedElements
+                            }
+                          });
+                        }}
+                        className="text-destructive hover:text-destructive hover:bg-destructive/10 p-1 h-8 w-8"
+                      >
+                        <X className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  ))}
+                  
+                  {(!editingProduct.nutritionalInfo?.nutritionalElements || editingProduct.nutritionalInfo.nutritionalElements.length === 0) && (
+                    <div className="text-center py-4 text-muted-foreground">
+                      No nutritional information added yet. Click "Add Nutritional Element" to get started.
+                    </div>
+                  )}
                 </div>
               </div>
 
