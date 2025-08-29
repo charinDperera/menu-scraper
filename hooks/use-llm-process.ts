@@ -31,11 +31,8 @@ export function useLLMProcess(): UseLLMProcessReturn {
       // Create processing metadata
       const metadata: ProcessingMetadata = {
         totalProducts: llmResponse.products.length,
-        successfulProducts: llmResponse.products.length,
-        failedProducts: 0,
         processingTime: llmResponse.processingTime,
         sourceFile: request.sourceFile,
-        fileSize: request.rawText.length,
         fileType: request.fileType || 'unknown',
         timestamp: new Date(),
       };
@@ -44,7 +41,6 @@ export function useLLMProcess(): UseLLMProcessReturn {
       const result: ProcessingResult = {
         success: true,
         products: llmResponse.products,
-        errors: [],
         metadata,
       };
 

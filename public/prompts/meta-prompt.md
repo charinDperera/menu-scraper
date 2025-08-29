@@ -18,22 +18,53 @@ Transform the raw text into a structured JSON format with the following structur
     {
       "name": "string",
       "description": "string (optional)",
-      "price": "number",
-      "currency": "string (default: USD)",
-      "category": "string",
-      "subcategory": "string (optional)",
-      "isAvailable": "boolean",
-      "isAlcoholic": "boolean",
-      "allergens": ["string array (optional)"],
-      "dietaryInfo": ["string array (optional)"],
-      "ingredients": ["string array (optional)"],
-      "tags": ["string array (optional)"]
-    }
-  ],
-  "categories": [
-    {
-      "name": "string",
-      "description": "string (optional)"
+      "categories": ["string array (optional)"],
+      "rating": "number (optional)",
+      "taxPercentage": "number (optional)",
+      "commentsCount": "number (optional)",
+      "tags": ["string array (optional)"],
+      "additionalInfo": [
+        {
+          "name": "string",
+          "description": "string"
+        }
+      ],
+      "images": ["string array (optional)"],
+      "thumbImages": ["string array (optional)"],
+      "videoUrls": ["string array (optional)"],
+      "deliverable": "boolean (optional)",
+      "variants": {
+        "name": "string (optional)",
+        "alternativeName": "string (optional)",
+        "types": [
+          {
+            "name": "string (optional)",
+            "alternativeName": "string (optional)",
+            "sku": "string (optional)",
+            "price": {
+              "amount": "number (optional)",
+              "currency": "string (optional)"
+            },
+            "description": "string (optional)"
+          }
+        ]
+      },
+      "addOns": [
+        {
+          "name": "string",
+          "alternativeName": "string (optional)",
+          "mandatory": "boolean (optional)",
+          "minSelectionsRequired": "number (optional)",
+          "maxSelectionsAllowed": "number (optional)",
+          "priority": "number (optional)",
+          "image": "string (optional)",
+          "isActive": "boolean (optional)",
+          "isMultiSelectable": "boolean (optional)"
+        }
+      ],
+      "isActive": "boolean (optional)",
+      "isAlcoholicProduct": "boolean (optional)",
+      "isFeatured": "boolean (optional)"
     }
   ]
 }
@@ -43,16 +74,17 @@ Transform the raw text into a structured JSON format with the following structur
 
 1. **Product Names**: Extract clear, concise product names. Remove unnecessary words like "Fresh", "Homemade", etc. unless they're part of the actual product name.
 
-2. **Prices**: 
-   - Extract numerical prices only
-   - Handle price ranges (e.g., "$12-15" → use average or lowest price)
-   - Remove currency symbols and convert to numbers
+2. **Variants and Pricing**: 
+   - **When size options exist** (e.g., Small, Medium, Large): Create separate variant types with appropriate names and prices
+   - **When no size options exist**: Use the format `[base] - [base]` for the variant name
+   - Extract numerical prices only, remove currency symbols
+   - Handle price ranges (e.g., "$12-15" → create separate variants or use average)
    - Default currency is USD
 
 3. **Categories**: 
-   - Group similar items into logical categories
+   - Extract category information as simple strings in the categories array
    - Use standard category names when possible (Appetizers, Main Courses, Desserts, Beverages, etc.)
-   - Create subcategories for better organization
+   - Don't create complex category hierarchies for this POC
 
 4. **Descriptions**: 
    - Extract key ingredients or preparation methods
@@ -60,15 +92,60 @@ Transform the raw text into a structured JSON format with the following structur
    - Remove marketing language unless it describes the actual dish
 
 5. **Special Attributes**:
-   - Identify alcoholic beverages (set isAlcoholic: true)
-   - Detect common allergens (nuts, dairy, gluten, shellfish, etc.)
-   - Note dietary restrictions (vegetarian, vegan, gluten-free, etc.)
+   - Identify alcoholic beverages (set isAlcoholicProduct: true)
+   - Note if items are deliverable
+   - Identify featured or special items
+   - Set isActive to true by default
 
 6. **Data Quality**:
    - Only include items that are clearly menu products
    - Skip headers, footers, and non-menu content
    - Maintain consistency in naming conventions
    - Handle missing data gracefully (use null/undefined for optional fields)
+
+## Variant Handling Examples
+
+**Example 1: Size-based variants**
+```
+Pizza Margherita
+Small $12.99 | Medium $15.99 | Large $18.99
+```
+**Result:**
+```json
+"variants": {
+  "types": [
+    {
+      "name": "Small",
+      "price": { "amount": 12.99, "currency": "USD" }
+    },
+    {
+      "name": "Medium", 
+      "price": { "amount": 15.99, "currency": "USD" }
+    },
+    {
+      "name": "Large",
+      "price": { "amount": 18.99, "currency": "USD" }
+    }
+  ]
+}
+```
+
+**Example 2: No size variants (use [base] - [base] format)**
+```
+Caesar Salad $14.99
+```
+**Result:**
+```json
+"variants": {
+  "name": "[base] - [base]",
+  "types": [
+    {
+      "name": "[base]",
+      "price": { "amount": 14.99, "currency": "USD" }
+    }
+  ]
+}
+```
 
 ## Example Input/Output
 
@@ -77,6 +154,10 @@ Transform the raw text into a structured JSON format with the following structur
 APPETIZERS
 Fresh Spring Rolls $8.50
 Vegetable dumplings with soy-ginger sauce $7.95
+
+MAIN COURSES
+Pizza Margherita
+Small $12.99 | Medium $15.99 | Large $18.99
 ```
 
 **Expected Output:**
@@ -86,28 +167,59 @@ Vegetable dumplings with soy-ginger sauce $7.95
     {
       "name": "Spring Rolls",
       "description": "Fresh vegetable rolls",
-      "price": 8.50,
-      "currency": "USD",
-      "category": "Appetizers",
-      "isAvailable": true,
-      "isAlcoholic": false,
-      "dietaryInfo": ["vegetarian"]
+      "categories": ["Appetizers"],
+      "variants": {
+        "name": "[base] - [base]",
+        "types": [
+          {
+            "name": "[base]",
+            "price": { "amount": 8.50, "currency": "USD" }
+          }
+        ]
+      },
+      "isActive": true,
+      "isAlcoholicProduct": false,
+      "deliverable": true
     },
     {
       "name": "Vegetable Dumplings",
       "description": "Served with soy-ginger sauce",
-      "price": 7.95,
-      "currency": "USD",
-      "category": "Appetizers",
-      "isAvailable": true,
-      "isAlcoholic": false,
-      "dietaryInfo": ["vegetarian"]
-    }
-  ],
-  "categories": [
+      "categories": ["Appetizers"],
+      "variants": {
+        "name": "[base] - [base]",
+        "types": [
+          {
+            "name": "[base]",
+            "price": { "amount": 7.95, "currency": "USD" }
+          }
+        ]
+      },
+      "isActive": true,
+      "isAlcoholicProduct": false,
+      "deliverable": true
+    },
     {
-      "name": "Appetizers",
-      "description": "Starters and small plates"
+      "name": "Pizza Margherita",
+      "categories": ["Main Courses"],
+      "variants": {
+        "types": [
+          {
+            "name": "Small",
+            "price": { "amount": 12.99, "currency": "USD" }
+          },
+          {
+            "name": "Medium",
+            "price": { "amount": 15.99, "currency": "USD" }
+          },
+          {
+            "name": "Large",
+            "price": { "amount": 18.99, "currency": "USD" }
+          }
+        ]
+      },
+      "isActive": true,
+      "isAlcoholicProduct": false,
+      "deliverable": true
     }
   ]
 }

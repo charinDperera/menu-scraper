@@ -7,13 +7,12 @@ import { Textarea } from '@/components/ui/textarea'
 import { Badge } from '@/components/ui/badge'
 import { useLLMProcess } from '@/hooks/use-llm-process'
 import { useFileParser } from '@/hooks/use-file-parser'
-import { MenuProduct, MenuCategory } from '@/types/product-model'
 
 export function LLMProcessorDemo() {
   const [rawText, setRawText] = useState('')
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   
-  const { parseFile, isParsing, parsedText, error: parseError } = useFileParser()
+  const { parseFile, loading: isParsing, error: parseError } = useFileParser()
   const { processMenuData, isProcessing, error: processError, lastResult } = useLLMProcess()
 
   const handleFileUpload = async (file: File) => {
@@ -148,20 +147,6 @@ export function LLMProcessorDemo() {
               </div>
             </div>
 
-            {/* Categories */}
-            {lastResult.metadata.categories && lastResult.metadata.categories.length > 0 && (
-              <div>
-                <h4 className="font-medium mb-2">Categories</h4>
-                <div className="flex flex-wrap gap-2">
-                  {lastResult.metadata.categories.map((category, index) => (
-                    <Badge key={index} variant="secondary">
-                      {category.name}
-                    </Badge>
-                  ))}
-                </div>
-              </div>
-            )}
-
             {/* Products */}
             <div>
               <h4 className="font-medium mb-2">Products</h4>
@@ -170,18 +155,24 @@ export function LLMProcessorDemo() {
                   <div key={index} className="p-3 border rounded-lg">
                     <div className="flex justify-between items-start mb-2">
                       <h5 className="font-medium">{product.name}</h5>
-                      <span className="text-lg font-semibold text-green-600">
-                        ${product.price}
-                      </span>
+                      {product.taxPercentage && (
+                        <span className="text-sm text-gray-600">
+                          Tax: {product.taxPercentage}%
+                        </span>
+                      )}
                     </div>
                     {product.description && (
                       <p className="text-sm text-gray-600 mb-2">{product.description}</p>
                     )}
                     <div className="flex flex-wrap gap-2">
-                      <Badge variant="outline">{product.category}</Badge>
-                      {product.isAlcoholic && <Badge variant="destructive">Alcoholic</Badge>}
-                      {product.dietaryInfo?.map((info, i) => (
-                        <Badge key={i} variant="secondary">{info}</Badge>
+                      {product.categories && product.categories.map((category, i) => (
+                        <Badge key={i} variant="outline">{category}</Badge>
+                      ))}
+                      {product.isAlcoholicProduct && <Badge variant="destructive">Alcoholic</Badge>}
+                      {product.isFeatured && <Badge variant="secondary">Featured</Badge>}
+                      {product.deliverable && <Badge variant="secondary">Delivery</Badge>}
+                      {product.tags && product.tags.map((tag, i) => (
+                        <Badge key={i} variant="secondary">{tag}</Badge>
                       ))}
                     </div>
                   </div>

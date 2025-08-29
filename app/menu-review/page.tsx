@@ -10,68 +10,35 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
 import { useRouter } from "next/navigation"
-import { ProcessingResult, MenuProduct } from "@/types/product-model"
+import { ProcessingResult, Product } from "@/types/product-model"
 
-interface AddOn {
-  addOnName: string
-  addOnTypeName: string
-  addOnSubTypeName: string
-  addOnPrice: number
-  priority: number
+interface OriginalFileInfo {
+  fileName: string;
+  fileType?: string;
+  fileSize: number;
+  originalText?: string;
 }
 
-interface ProductVariant {
-  variantId: string
-  variantName: string
-  variantPrice: number
-  addOns: AddOn[]
-}
-
-interface ExtractedProduct {
-  id: string
-  productName: string
-  productAlternativeName: string
-  image: string
-  variants: ProductVariant[]
-  taxPercentage: number
-  isAlcoholicProduct: boolean
-}
-
-// Function to map LLM MenuProduct to ExtractedProduct
-function mapLLMProductToExtractedProduct(llmProduct: MenuProduct): ExtractedProduct {
+// Function to map LLM Product to display format
+function mapLLMProductToDisplayProduct(llmProduct: Product): Product {
   return {
-    id: llmProduct.id,
-    productName: llmProduct.name,
-    productAlternativeName: llmProduct.alternativeName || '',
-    image: llmProduct.image || '/placeholder.svg',
-    variants: [
-      {
-        variantId: `${llmProduct.id}-main`,
-        variantName: 'Standard',
-        variantPrice: llmProduct.price,
-        addOns: (llmProduct.addOns || []).map((addon, index) => ({
-          addOnName: addon.name,
-          addOnTypeName: addon.type,
-          addOnSubTypeName: addon.subType || '',
-          addOnPrice: addon.price,
-          priority: addon.priority,
-        })),
-      },
-    ],
-    taxPercentage: 8.5, // Default tax rate
-    isAlcoholicProduct: llmProduct.isAlcoholic,
+    ...llmProduct,
+    productId: llmProduct.productId || `product-${Date.now()}-${Math.random()}`,
+    name: llmProduct.name || 'Unknown Product',
+    isActive: llmProduct.isActive !== false, // Default to true
+    isAlcoholicProduct: llmProduct.isAlcoholicProduct === true,
+    deliverable: llmProduct.deliverable === true,
+    isFeatured: llmProduct.isFeatured === true,
   }
 }
 
 export default function MenuReviewPage() {
   const router = useRouter()
-  const [editingProduct, setEditingProduct] = useState<ExtractedProduct | null>(null)
-  const [editingVariant, setEditingVariant] = useState<{ productId: string; variant: ProductVariant } | null>(null)
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null)
   const [isProductDialogOpen, setIsProductDialogOpen] = useState(false)
-  const [isVariantDialogOpen, setIsVariantDialogOpen] = useState(false)
-  const [extractedProducts, setExtractedProducts] = useState<ExtractedProduct[]>([])
+  const [products, setProducts] = useState<Product[]>([])
   const [llmResult, setLlmResult] = useState<ProcessingResult | null>(null)
-  const [originalFileInfo, setOriginalFileInfo] = useState<any>(null)
+  const [originalFileInfo, setOriginalFileInfo] = useState<OriginalFileInfo | null>(null)
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
@@ -87,9 +54,9 @@ export default function MenuReviewPage() {
         setLlmResult(result)
         setOriginalFileInfo(fileInfo)
         
-        // Map LLM products to extracted products
-        const mappedProducts = result.products.map(mapLLMProductToExtractedProduct)
-        setExtractedProducts(mappedProducts)
+        // Map LLM products to display products
+        const mappedProducts = result.products.map(mapLLMProductToDisplayProduct)
+        setProducts(mappedProducts)
         
         setIsLoading(false)
       } catch (error) {
@@ -103,13 +70,13 @@ export default function MenuReviewPage() {
   }, [router])
 
   const handleSaveProducts = () => {
-    console.log("Saving products:", extractedProducts)
+    console.log("Saving products:", products)
     // Here you would typically send the data to your API
     // For now, we'll just redirect back with success
     router.push("/?success=true")
   }
 
-  const handleEditProduct = (product: ExtractedProduct) => {
+  const handleEditProduct = (product: Product) => {
     setEditingProduct({ ...product })
     setIsProductDialogOpen(true)
   }
@@ -117,37 +84,13 @@ export default function MenuReviewPage() {
   const handleSaveProduct = () => {
     if (!editingProduct) return
 
-    setExtractedProducts((prev) => prev.map((product) => (product.id === editingProduct.id ? editingProduct : product)))
+    setProducts((prev) => prev.map((product) => (product.productId === editingProduct.productId ? editingProduct : product)))
     setIsProductDialogOpen(false)
     setEditingProduct(null)
   }
 
-  const handleEditVariant = (productId: string, variant: ProductVariant) => {
-    setEditingVariant({ productId, variant: { ...variant } })
-    setIsVariantDialogOpen(true)
-  }
-
-  const handleSaveVariant = () => {
-    if (!editingVariant) return
-
-    setExtractedProducts((prev) =>
-      prev.map((product) =>
-        product.id === editingVariant.productId
-          ? {
-              ...product,
-              variants: product.variants.map((v) =>
-                v.variantId === editingVariant.variant.variantId ? editingVariant.variant : v,
-              ),
-            }
-          : product,
-      ),
-    )
-    setIsVariantDialogOpen(false)
-    setEditingVariant(null)
-  }
-
   const handleRemoveProduct = (productId: string) => {
-    setExtractedProducts((prev) => prev.filter((product) => product.id !== productId))
+    setProducts((prev) => prev.filter((product) => product.productId !== productId))
   }
 
   if (isLoading) {
@@ -192,7 +135,7 @@ export default function MenuReviewPage() {
             </Button>
             <Button className="bg-green-500 hover:bg-green-600 text-white" onClick={handleSaveProducts}>
               <Save className="w-4 h-4 mr-2" />
-              Save All Products ({extractedProducts.length})
+              Save All Products ({products.length})
             </Button>
           </div>
         </div>
@@ -221,35 +164,39 @@ export default function MenuReviewPage() {
           )}
 
           <div className="grid gap-6">
-            {extractedProducts.map((product) => (
-              <Card key={product.id} className="overflow-hidden">
+            {products.map((product) => (
+              <Card key={product.productId} className="overflow-hidden">
                 <CardHeader className="bg-gray-50 border-b">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-4">
                       <div className="w-16 h-16 bg-gray-200 rounded-lg overflow-hidden">
                         <img
-                          src={product.image || "/placeholder.svg"}
-                          alt={product.productName}
+                          src={product.images?.[0] || product.thumbImages?.[0] || "/placeholder.svg"}
+                          alt={product.name}
                           className="w-full h-full object-cover"
                         />
                       </div>
                       <div>
-                        <CardTitle className="text-lg">{product.productName}</CardTitle>
-                        {product.productAlternativeName && (
-                          <p className="text-sm text-gray-500">{product.productAlternativeName}</p>
+                        <CardTitle className="text-lg">{product.name}</CardTitle>
+                        {product.alternativeName && (
+                          <p className="text-sm text-gray-500">{product.alternativeName}</p>
                         )}
                       </div>
                     </div>
                     <div className="flex items-center space-x-2">
-                      <Badge variant="secondary">Tax: {product.taxPercentage}%</Badge>
+                      {product.taxPercentage && (
+                        <Badge variant="secondary">Tax: {product.taxPercentage}%</Badge>
+                      )}
                       {product.isAlcoholicProduct && <Badge variant="destructive">Alcoholic</Badge>}
+                      {product.isFeatured && <Badge variant="secondary">Featured</Badge>}
+                      {product.deliverable && <Badge variant="secondary">Delivery</Badge>}
                       <Button variant="ghost" size="sm" onClick={() => handleEditProduct(product)}>
                         <Edit2 className="w-4 h-4" />
                       </Button>
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => handleRemoveProduct(product.id)}
+                        onClick={() => handleRemoveProduct(product.productId!)}
                         className="text-red-600 hover:text-red-800"
                       >
                         <Trash2 className="w-4 h-4" />
@@ -260,56 +207,90 @@ export default function MenuReviewPage() {
 
                 <CardContent className="p-6">
                   <div className="space-y-4">
-                    <h4 className="font-medium text-gray-800">Variants & Pricing</h4>
-                    {product.variants.map((variant) => (
-                      <div key={variant.variantId} className="border rounded-lg p-4 bg-gray-50">
-                        <div className="flex items-center justify-between mb-3">
-                          <div className="flex-1">
-                            <div className="flex items-center justify-between">
-                              <span className="font-medium">{variant.variantName}</span>
-                              <span className="text-lg font-semibold text-green-600">
-                                ${variant.variantPrice.toFixed(2)}
-                              </span>
-                            </div>
-                          </div>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleEditVariant(product.id, variant)}
-                            className="ml-2"
-                          >
-                            <Edit2 className="w-4 h-4" />
-                          </Button>
-                        </div>
-
-                        {variant.addOns.length > 0 && (
-                          <div>
-                            <h5 className="text-sm font-medium text-gray-700 mb-2">Add-ons</h5>
-                            <div className="space-y-2">
-                              {variant.addOns.map((addOn, index) => (
-                                <div
-                                  key={index}
-                                  className="flex items-center justify-between text-sm bg-white p-2 rounded border"
-                                >
-                                  <div>
-                                    <span className="font-medium">{addOn.addOnName}</span>
-                                    <span className="text-gray-500 ml-2">({addOn.addOnTypeName})</span>
-                                  </div>
-                                  <span className="text-green-600 font-medium">+${addOn.addOnPrice.toFixed(2)}</span>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        )}
+                    {product.description && (
+                      <div>
+                        <h4 className="font-medium text-gray-800 mb-2">Description</h4>
+                        <p className="text-gray-600">{product.description}</p>
                       </div>
-                    ))}
+                    )}
+
+                    {product.categories && product.categories.length > 0 && (
+                      <div>
+                        <h4 className="font-medium text-gray-800 mb-2">Categories</h4>
+                        <div className="flex flex-wrap gap-2">
+                          {product.categories.map((category, index) => (
+                            <Badge key={index} variant="outline">{category}</Badge>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {product.tags && product.tags.length > 0 && (
+                      <div>
+                        <h4 className="font-medium text-gray-800 mb-2">Tags</h4>
+                        <div className="flex flex-wrap gap-2">
+                          {product.tags.map((tag, index) => (
+                            <Badge key={index} variant="secondary">{tag}</Badge>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {product.addOns && product.addOns.length > 0 && (
+                      <div>
+                        <h4 className="font-medium text-gray-800 mb-2">Add-ons</h4>
+                        <div className="space-y-2">
+                          {product.addOns.map((addOn, index) => (
+                            <div
+                              key={index}
+                              className="flex items-center justify-between text-sm bg-gray-50 p-2 rounded border"
+                            >
+                              <div>
+                                <span className="font-medium">{addOn.name}</span>
+                                {addOn.mandatory && (
+                                  <Badge variant="destructive" className="ml-2">Required</Badge>
+                                )}
+                              </div>
+                              {addOn.types && addOn.types[0]?.subTypes && addOn.types[0].subTypes[0]?.price && (
+                                <span className="text-green-600 font-medium">
+                                  +${addOn.types[0].subTypes[0].price.amount}
+                                </span>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {product.variants && (
+                      <div>
+                        <h4 className="font-medium text-gray-800 mb-2">Variants</h4>
+                        <div className="space-y-2">
+                          {product.variants.types?.map((variantType, index) => (
+                            <div key={index} className="border rounded-lg p-3 bg-gray-50">
+                              <div className="flex items-center justify-between">
+                                <span className="font-medium">{variantType.name}</span>
+                                {variantType.price && (
+                                  <span className="text-lg font-semibold text-green-600">
+                                    ${variantType.price.amount}
+                                  </span>
+                                )}
+                              </div>
+                              {variantType.description && (
+                                <p className="text-sm text-gray-600 mt-1">{variantType.description}</p>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </CardContent>
               </Card>
             ))}
           </div>
 
-          {extractedProducts.length === 0 && (
+          {products.length === 0 && (
             <div className="text-center py-16">
               <div className="w-24 h-24 bg-gray-100 rounded-lg mx-auto mb-6 flex items-center justify-center">
                 <Upload className="w-12 h-12 text-gray-400" />
@@ -338,18 +319,27 @@ export default function MenuReviewPage() {
                   <Label htmlFor="productName">Product Name</Label>
                   <Input
                     id="productName"
-                    value={editingProduct.productName}
-                    onChange={(e) => setEditingProduct({ ...editingProduct, productName: e.target.value })}
+                    value={editingProduct.name}
+                    onChange={(e) => setEditingProduct({ ...editingProduct, name: e.target.value })}
                   />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="alternativeName">Alternative Name</Label>
                   <Input
                     id="alternativeName"
-                    value={editingProduct.productAlternativeName}
-                    onChange={(e) => setEditingProduct({ ...editingProduct, productAlternativeName: e.target.value })}
+                    value={editingProduct.alternativeName || ''}
+                    onChange={(e) => setEditingProduct({ ...editingProduct, alternativeName: e.target.value })}
                   />
                 </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="description">Description</Label>
+                <Input
+                  id="description"
+                  value={editingProduct.description || ''}
+                  onChange={(e) => setEditingProduct({ ...editingProduct, description: e.target.value })}
+                />
               </div>
 
               <div className="grid grid-cols-2 gap-4">
@@ -359,23 +349,79 @@ export default function MenuReviewPage() {
                     id="taxPercentage"
                     type="number"
                     step="0.1"
-                    value={editingProduct.taxPercentage}
+                    value={editingProduct.taxPercentage || ''}
                     onChange={(e) =>
-                      setEditingProduct({ ...editingProduct, taxPercentage: Number.parseFloat(e.target.value) })
+                      setEditingProduct({ ...editingProduct, taxPercentage: Number.parseFloat(e.target.value) || undefined })
                     }
                   />
                 </div>
+                <div className="space-y-2">
+                  <Label htmlFor="priority">Priority</Label>
+                  <Input
+                    id="priority"
+                    type="number"
+                    value={editingProduct.priority || ''}
+                    onChange={(e) =>
+                      setEditingProduct({ ...editingProduct, priority: Number.parseInt(e.target.value) || undefined })
+                    }
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="alcoholic">Alcoholic Product</Label>
                   <div className="flex items-center space-x-2 pt-2">
                     <Switch
                       id="alcoholic"
-                      checked={editingProduct.isAlcoholicProduct}
+                      checked={editingProduct.isAlcoholicProduct || false}
                       onCheckedChange={(checked) =>
                         setEditingProduct({ ...editingProduct, isAlcoholicProduct: checked })
                       }
                     />
                     <span className="text-sm text-gray-600">{editingProduct.isAlcoholicProduct ? "Yes" : "No"}</span>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="featured">Featured Product</Label>
+                  <div className="flex items-center space-x-2 pt-2">
+                    <Switch
+                      id="featured"
+                      checked={editingProduct.isFeatured || false}
+                      onCheckedChange={(checked) =>
+                        setEditingProduct({ ...editingProduct, isFeatured: checked })
+                      }
+                    />
+                    <span className="text-sm text-gray-600">{editingProduct.isFeatured ? "Yes" : "No"}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="deliverable">Deliverable</Label>
+                  <div className="flex items-center space-x-2 pt-2">
+                    <Switch
+                      id="deliverable"
+                      checked={editingProduct.deliverable || false}
+                      onCheckedChange={(checked) =>
+                        setEditingProduct({ ...editingProduct, deliverable: checked })
+                      }
+                    />
+                    <span className="text-sm text-gray-600">{editingProduct.deliverable ? "Yes" : "No"}</span>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="active">Active</Label>
+                  <div className="flex items-center space-x-2 pt-2">
+                    <Switch
+                      id="active"
+                      checked={editingProduct.isActive !== false}
+                      onCheckedChange={(checked) =>
+                        setEditingProduct({ ...editingProduct, isActive: checked })
+                      }
+                    />
+                    <span className="text-sm text-gray-600">{editingProduct.isActive !== false ? "Yes" : "No"}</span>
                   </div>
                 </div>
               </div>
@@ -385,104 +431,6 @@ export default function MenuReviewPage() {
                   Cancel
                 </Button>
                 <Button onClick={handleSaveProduct} className="bg-green-500 hover:bg-green-600">
-                  Save Changes
-                </Button>
-              </div>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
-
-      {/* Variant Edit Dialog */}
-      <Dialog open={isVariantDialogOpen} onOpenChange={setIsVariantDialogOpen}>
-        <DialogContent className="max-w-xl">
-          <DialogHeader>
-            <DialogTitle>Edit Variant</DialogTitle>
-          </DialogHeader>
-          {editingVariant && (
-            <div className="space-y-6">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="variantName">Variant Name</Label>
-                  <Input
-                    id="variantName"
-                    value={editingVariant.variant.variantName}
-                    onChange={(e) =>
-                      setEditingVariant({
-                        ...editingVariant,
-                        variant: { ...editingVariant.variant, variantName: e.target.value },
-                      })
-                    }
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="variantPrice">Price</Label>
-                  <Input
-                    id="variantPrice"
-                    type="number"
-                    step="0.01"
-                    value={editingVariant.variant.variantPrice}
-                    onChange={(e) =>
-                      setEditingVariant({
-                        ...editingVariant,
-                        variant: { ...editingVariant.variant, variantPrice: Number.parseFloat(e.target.value) },
-                      })
-                    }
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-3">
-                <Label>Add-ons</Label>
-                {editingVariant.variant.addOns.map((addOn, index) => (
-                  <div key={index} className="grid grid-cols-3 gap-2 p-3 border rounded-lg">
-                    <Input
-                      placeholder="Add-on name"
-                      value={addOn.addOnName}
-                      onChange={(e) => {
-                        const newAddOns = [...editingVariant.variant.addOns]
-                        newAddOns[index] = { ...addOn, addOnName: e.target.value }
-                        setEditingVariant({
-                          ...editingVariant,
-                          variant: { ...editingVariant.variant, addOns: newAddOns },
-                        })
-                      }}
-                    />
-                    <Input
-                      placeholder="Type"
-                      value={addOn.addOnTypeName}
-                      onChange={(e) => {
-                        const newAddOns = [...editingVariant.variant.addOns]
-                        newAddOns[index] = { ...addOn, addOnTypeName: e.target.value }
-                        setEditingVariant({
-                          ...editingVariant,
-                          variant: { ...editingVariant.variant, addOns: newAddOns },
-                        })
-                      }}
-                    />
-                    <Input
-                      type="number"
-                      step="0.01"
-                      placeholder="Price"
-                      value={addOn.addOnPrice}
-                      onChange={(e) => {
-                        const newAddOns = [...editingVariant.variant.addOns]
-                        newAddOns[index] = { ...addOn, addOnPrice: Number.parseFloat(e.target.value) }
-                        setEditingVariant({
-                          ...editingVariant,
-                          variant: { ...editingVariant.variant, addOns: newAddOns },
-                        })
-                      }}
-                    />
-                  </div>
-                ))}
-              </div>
-
-              <div className="flex justify-end space-x-3">
-                <Button variant="outline" onClick={() => setIsVariantDialogOpen(false)}>
-                  Cancel
-                </Button>
-                <Button onClick={handleSaveVariant} className="bg-green-500 hover:bg-green-600">
                   Save Changes
                 </Button>
               </div>

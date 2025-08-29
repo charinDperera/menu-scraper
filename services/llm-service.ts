@@ -1,4 +1,4 @@
-import { ProcessingResult, MenuProduct, MenuCategory } from '@/types/product-model';
+import { ProcessingResult, Product } from '@/types/product-model';
 
 export interface LLMProcessingRequest {
   rawText: string;
@@ -8,8 +8,7 @@ export interface LLMProcessingRequest {
 
 export interface LLMProcessingResponse {
   success: boolean;
-  products: MenuProduct[];
-  categories: MenuCategory[];
+  products: Product[];
   processingTime: number;
   model: string;
   confidence: number;
@@ -73,22 +72,53 @@ Transform the raw text into a structured JSON format with the following structur
     {
       "name": "string",
       "description": "string (optional)",
-      "price": "number",
-      "currency": "string (default: USD)",
-      "category": "string",
-      "subcategory": "string (optional)",
-      "isAvailable": "boolean",
-      "isAlcoholic": "boolean",
-      "allergens": ["string array (optional)"],
-      "dietaryInfo": ["string array (optional)"],
-      "ingredients": ["string array (optional)"],
-      "tags": ["string array (optional)"]
-    }
-  ],
-  "categories": [
-    {
-      "name": "string",
-      "description": "string (optional)"
+      "categories": ["string array (optional)"],
+      "rating": "number (optional)",
+      "taxPercentage": "number (optional)",
+      "commentsCount": "number (optional)",
+      "tags": ["string array (optional)"],
+      "additionalInfo": [
+        {
+          "name": "string",
+          "description": "string"
+        }
+      ],
+      "images": ["string array (optional)"],
+      "thumbImages": ["string array (optional)"],
+      "videoUrls": ["string array (optional)"],
+      "deliverable": "boolean (optional)",
+      "variants": {
+        "name": "string (optional)",
+        "alternativeName": "string (optional)",
+        "types": [
+          {
+            "name": "string (optional)",
+            "alternativeName": "string (optional)",
+            "sku": "string (optional)",
+            "price": {
+              "amount": "number (optional)",
+              "currency": "string (optional)"
+            },
+            "description": "string (optional)"
+          }
+        ]
+      },
+      "addOns": [
+        {
+          "name": "string",
+          "alternativeName": "string (optional)",
+          "mandatory": "boolean (optional)",
+          "minSelectionsRequired": "number (optional)",
+          "maxSelectionsAllowed": "number (optional)",
+          "priority": "number (optional)",
+          "image": "string (optional)",
+          "isActive": "boolean (optional)",
+          "isMultiSelectable": "boolean (optional)"
+        }
+      ],
+      "isActive": "boolean (optional)",
+      "isAlcoholicProduct": "boolean (optional)",
+      "isFeatured": "boolean (optional)"
     }
   ]
 }
@@ -98,16 +128,17 @@ Transform the raw text into a structured JSON format with the following structur
 
 1. **Product Names**: Extract clear, concise product names. Remove unnecessary words like "Fresh", "Homemade", etc. unless they're part of the actual product name.
 
-2. **Prices**: 
-   - Extract numerical prices only
-   - Handle price ranges (e.g., "$12-15" → use average or lowest price)
-   - Remove currency symbols and convert to numbers
+2. **Variants and Pricing**: 
+   - **When size options exist** (e.g., Small, Medium, Large): Create separate variant types with appropriate names and prices
+   - **When no size options exist**: Use the format \`[base] - [base]\` for the variant name
+   - Extract numerical prices only, remove currency symbols
+   - Handle price ranges (e.g., "$12-15" → create separate variants or use average)
    - Default currency is USD
 
 3. **Categories**: 
-   - Group similar items into logical categories
+   - Extract category information as simple strings in the categories array
    - Use standard category names when possible (Appetizers, Main Courses, Desserts, Beverages, etc.)
-   - Create subcategories for better organization
+   - Don't create complex category hierarchies for this POC
 
 4. **Descriptions**: 
    - Extract key ingredients or preparation methods
@@ -115,15 +146,60 @@ Transform the raw text into a structured JSON format with the following structur
    - Remove marketing language unless it describes the actual dish
 
 5. **Special Attributes**:
-   - Identify alcoholic beverages (set isAlcoholic: true)
-   - Detect common allergens (nuts, dairy, gluten, shellfish, etc.)
-   - Note dietary restrictions (vegetarian, vegan, gluten-free, etc.)
+   - Identify alcoholic beverages (set isAlcoholicProduct: true)
+   - Note if items are deliverable
+   - Identify featured or special items
+   - Set isActive to true by default
 
 6. **Data Quality**:
    - Only include items that are clearly menu products
    - Skip headers, footers, and non-menu content
    - Maintain consistency in naming conventions
    - Handle missing data gracefully (use null/undefined for optional fields)
+
+## Variant Handling Examples
+
+**Example 1: Size-based variants**
+\`\`\`
+Pizza Margherita
+Small $12.99 | Medium $15.99 | Large $18.99
+\`\`\`
+**Result:**
+\`\`\`json
+"variants": {
+  "types": [
+    {
+      "name": "Small",
+      "price": { "amount": 12.99, "currency": "USD" }
+    },
+    {
+      "name": "Medium", 
+      "price": { "amount": 15.99, "currency": "USD" }
+    },
+    {
+      "name": "Large",
+      "price": { "amount": 18.99, "currency": "USD" }
+    }
+  ]
+}
+\`\`\`
+
+**Example 2: No size variants (use [base] - [base] format)**
+\`\`\`
+Caesar Salad $14.99
+\`\`\`
+**Result:**
+\`\`\`json
+"variants": {
+  "name": "[base] - [base]",
+  "types": [
+    {
+      "name": "[base]",
+      "price": { "amount": 14.99, "currency": "USD" }
+    }
+  ]
+}
+\`\`\`
 
 Return only the JSON response, no additional text or explanations.`;
   }
@@ -156,7 +232,6 @@ Return only the JSON response, no additional text or explanations.`;
       return {
         success: true,
         products: parsedData.products || [],
-        categories: parsedData.categories || [],
         processingTime,
         model: this.model,
         confidence: 0.85, // Default confidence score
@@ -168,7 +243,6 @@ Return only the JSON response, no additional text or explanations.`;
       return {
         success: false,
         products: [],
-        categories: [],
         processingTime,
         model: this.model,
         confidence: 0,
@@ -228,7 +302,7 @@ Return only the JSON response, no additional text or explanations.`;
     }
   }
 
-  private parseLLMResponse(responseText: string): { products: MenuProduct[]; categories: MenuCategory[] } {
+  private parseLLMResponse(responseText: string): { products: Product[] } {
     try {
       // Clean the response text - remove any markdown formatting
       const cleanText = responseText.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
@@ -237,65 +311,47 @@ Return only the JSON response, no additional text or explanations.`;
       
       // Validate and transform the parsed data
       const products = this.validateAndTransformProducts(parsed.products || []);
-      const categories = this.validateAndTransformCategories(parsed.categories || []);
       
-      return { products, categories };
+      return { products };
     } catch (error) {
       throw new Error(`Failed to parse LLM response: ${error}`);
     }
   }
 
-  private validateAndTransformProducts(rawProducts: any[]): MenuProduct[] {
+  private validateAndTransformProducts(rawProducts: any[]): Product[] {
     return rawProducts.map((product, index) => ({
-      id: product.id || `product-${Date.now()}-${index}`,
+      productId: product.productId || `product-${Date.now()}-${index}`,
       name: product.name || 'Unknown Product',
       alternativeName: product.alternativeName,
       description: product.description,
-      price: this.parsePrice(product.price),
-      currency: product.currency || 'USD',
-      category: product.category || 'Uncategorized',
-      subcategory: product.subcategory,
-      image: product.image,
-      isAvailable: product.isAvailable !== false, // Default to true
-      isAlcoholic: product.isAlcoholic === true,
-      allergens: Array.isArray(product.allergens) ? product.allergens : [],
-      dietaryInfo: Array.isArray(product.dietaryInfo) ? product.dietaryInfo : [],
-      preparationTime: product.preparationTime,
-      spiceLevel: product.spiceLevel,
-      servingSize: product.servingSize,
-      calories: product.calories,
-      ingredients: Array.isArray(product.ingredients) ? product.ingredients : [],
-      variants: product.variants || [],
-      addOns: product.addOns || [],
+      categories: Array.isArray(product.categories) ? product.categories : [],
+      categoriesList: Array.isArray(product.categoriesList) ? product.categoriesList : [],
+      rating: typeof product.rating === 'number' ? product.rating : undefined,
+      taxPercentage: typeof product.taxPercentage === 'number' ? product.taxPercentage : undefined,
+      commentsCount: typeof product.commentsCount === 'number' ? product.commentsCount : undefined,
       tags: Array.isArray(product.tags) ? product.tags : [],
-      createdAt: new Date(),
-      updatedAt: new Date(),
+      additionalInfo: Array.isArray(product.additionalInfo) ? product.additionalInfo : [],
+      images: Array.isArray(product.images) ? product.images : [],
+      thumbImages: Array.isArray(product.thumbImages) ? product.thumbImages : [],
+      videoUrls: Array.isArray(product.videoUrls) ? product.videoUrls : [],
+      deliverable: product.deliverable === true,
+      variants: product.variants,
+      addOns: Array.isArray(product.addOns) ? product.addOns : [],
+      isActive: product.isActive !== false, // Default to true
+      activeForKiosk: product.activeForKiosk,
+      activeForOrderAhead: product.activeForOrderAhead,
+      activeForOrderAheadWebstore: product.activeForOrderAheadWebstore,
+      activeForDigitalDining: product.activeForDigitalDining,
+      activeForPOSRegister: product.activeForPOSRegister,
+      createdDate: product.createdDate || new Date().toISOString(),
+      priority: typeof product.priority === 'number' ? product.priority : undefined,
+      taxes: Array.isArray(product.taxes) ? product.taxes : [],
+      isAlcoholicProduct: product.isAlcoholicProduct === true,
+      isFeatured: product.isFeatured === true,
+      nutritionalInfo: product.nutritionalInfo,
+      displayDeviceIds: Array.isArray(product.displayDeviceIds) ? product.displayDeviceIds : [],
+      isAutoRestockEnabled: product.isAutoRestockEnabled,
     }));
-  }
-
-  private validateAndTransformCategories(rawCategories: any[]): MenuCategory[] {
-    return rawCategories.map((category, index) => ({
-      id: category.id || `category-${Date.now()}-${index}`,
-      name: category.name || 'Unknown Category',
-      alternativeName: category.alternativeName,
-      description: category.description,
-      image: category.image,
-      sortOrder: category.sortOrder || index,
-      isActive: category.isActive !== false, // Default to true
-      parentCategoryId: category.parentCategoryId,
-      subcategories: category.subcategories || [],
-    }));
-  }
-
-  private parsePrice(price: any): number {
-    if (typeof price === 'number') return price;
-    if (typeof price === 'string') {
-      // Remove currency symbols and non-numeric characters
-      const cleanPrice = price.replace(/[^\d.-]/g, '');
-      const parsed = parseFloat(cleanPrice);
-      return isNaN(parsed) ? 0 : parsed;
-    }
-    return 0;
   }
 }
 

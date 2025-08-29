@@ -16,8 +16,8 @@ export default function HomePage() {
   const [currentStep, setCurrentStep] = useState<'upload' | 'processing' | 'llm-processing' | 'complete'>('upload')
   const router = useRouter()
   const fileInputRef = useRef<HTMLInputElement>(null)
-  const { parseFile, loading, result, error } = useFileParser()
-  const { processMenuData, isProcessing, error: llmError, lastResult } = useLLMProcess()
+  const { parseFile, error } = useFileParser()
+  const { processMenuData, error: llmError, lastResult } = useLLMProcess()
   
   // Use useEffect to set client state after hydration
   useEffect(() => {
@@ -205,7 +205,14 @@ export default function HomePage() {
                       {lastResult.products.slice(0, 5).map((product, index) => (
                         <div key={index} className="flex justify-between items-center p-2 bg-gray-50 rounded">
                           <span className="text-sm font-medium">{product.name}</span>
-                          <span className="text-sm text-green-600">${product.price}</span>
+                          <div className="flex items-center space-x-2">
+                            {product.categories && product.categories[0] && (
+                              <span className="text-xs text-gray-500">{product.categories[0]}</span>
+                            )}
+                            {product.isAlcoholicProduct && (
+                              <span className="text-xs bg-red-100 text-red-600 px-2 py-1 rounded">Alcoholic</span>
+                            )}
+                          </div>
                         </div>
                       ))}
                       {lastResult.products.length > 5 && (

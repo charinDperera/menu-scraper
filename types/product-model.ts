@@ -1,146 +1,191 @@
-// Core Product Model for Menu Scraper System
+// Simplified Product Model for Menu Scraper POC
 
-export interface MenuProduct {
-  id: string;
-  name: string;
-  alternativeName?: string;
-  description?: string;
-  price: number;
-  currency: string;
-  category: string;
-  subcategory?: string;
-  image?: string;
-  isAvailable: boolean;
-  isAlcoholic: boolean;
-  allergens?: string[];
-  dietaryInfo?: string[];
-  preparationTime?: number; // in minutes
-  spiceLevel?: number; // 1-5 scale
-  servingSize?: string;
-  calories?: number;
-  ingredients?: string[];
-  variants?: ProductVariant[];
-  addOns?: AddOn[];
-  tags?: string[];
-  createdAt: Date;
-  updatedAt: Date;
+export interface CreateProducts {
+  products: Product[];
 }
 
-export interface ProductVariant {
-  id: string;
+export interface Product {
+  productId?: string;
   name: string;
   alternativeName?: string;
-  price: number;
-  isAvailable: boolean;
   description?: string;
+  categories?: string[];
+  categoriesList?: Category[];
+  rating?: number;
+  taxPercentage?: number;
+  commentsCount?: number;
+  tags?: string[];
+  additionalInfo?: ProductAdditionalInfo[];
+  images?: string[];
+  thumbImages?: string[];
+  videoUrls?: string[];
+  deliverable?: boolean;
+  variants?: Variant;
+  addOns?: AddOn[];
+  isActive?: boolean;
+  activeForKiosk?: boolean;
+  activeForOrderAhead?: boolean;
+  activeForOrderAheadWebstore?: boolean;
+  activeForDigitalDining?: boolean;
+  activeForPOSRegister?: boolean;
+  createdDate?: string;
+  priority?: number;
+  taxes?: TaxItem[];
+  isAlcoholicProduct?: boolean;
+  isFeatured?: boolean;
+  nutritionalInfo?: NutritionalInfo;
+  displayDeviceIds?: string[];
+  isAutoRestockEnabled?: boolean;
+}
+
+export interface Category {
+  categoryId?: string;
+  name: string;
+  itemsCount?: number;
   image?: string;
-  attributes?: Record<string, string | number | boolean>;
+  priority?: number;
+  isActive?: boolean;
+  activeForKiosk?: boolean;
+  activeForOrderAhead?: boolean;
+  activeForOrderAheadWebstore?: boolean;
+  activeForDigitalDining?: boolean;
+  activeForPOSRegister?: boolean;
+  createdDate?: string;
+  businessId?: string;
+  product?: Product;
+  parentCategoryId?: string;
+  description?: string;
+  additionalInfo?: AdditionalInfo[];
+  displayDeviceIds?: string[];
+  visibilityGroups?: DurationVisibility[];
+}
+
+export interface NutritionalInfo {
+  description?: string;
+  nutritionalElements?: NutritionalElement[];
+}
+
+export interface NutritionalElement {
+  name?: string;
+  value?: string;
+}
+
+export interface TaxItem {
+  id?: string;
+  name: string;
+  taxLevel: string;
+  rate: string;
+  restrictedCollectionMethods?: string[];
+  dependsOnTaxIds?: string[];
+  isIncludedInPrice?: boolean;
+  isDefault?: boolean;
 }
 
 export interface AddOn {
-  id: string;
+  groupId?: string;
   name: string;
-  alternativeName?: string;
-  type: string;
-  subType?: string;
-  price: number;
-  isAvailable: boolean;
-  isRequired: boolean;
-  maxQuantity?: number;
-  priority: number;
-}
-
-export interface MenuCategory {
-  id: string;
-  name: string;
-  alternativeName?: string;
-  description?: string;
+  types?: AddOnType[];
+  mandatory?: boolean;
+  minSelectionsRequired?: number;
+  maxSelectionsAllowed?: number;
+  priority?: number;
   image?: string;
-  sortOrder: number;
-  isActive: boolean;
-  parentCategoryId?: string;
-  subcategories?: MenuCategory[];
+  isActive?: boolean;
+  isMultiSelectable?: boolean;
+  alternativeName?: string;
 }
 
-export interface MenuSection {
-  id: string;
-  name: string;
+export interface AddOnType {
+  name?: string;
+  alternativeName?: string;
   description?: string;
-  products: MenuProduct[];
-  sortOrder: number;
-  isVisible: boolean;
+  subTypes?: AddOnSubType[];
+  image?: string;
 }
 
-export interface Menu {
-  id: string;
-  name: string;
+export interface AddOnSubType {
+  name?: string;
+  alternativeName?: string;
+  sku?: string;
+  price?: Price;
   description?: string;
-  restaurantId: string;
-  restaurantName: string;
-  sections: MenuSection[];
-  categories: MenuCategory[];
-  currency: string;
-  language: string;
-  version: string;
-  isActive: boolean;
-  validFrom: Date;
-  validTo?: Date;
-  createdAt: Date;
-  updatedAt: Date;
+  defaultSelection?: boolean;
+  displaySku?: string;
+  image?: string;
+  isActive?: boolean;
+  thirdPartyAddonId?: string;
 }
 
-export interface ScrapedProductData {
-  rawText: string;
-  extractedData: Partial<MenuProduct>;
-  confidence: number;
-  source: 'ocr' | 'ai' | 'manual';
-  processingMetadata: {
-    processingTime: number;
-    model: string;
-    version: string;
-    timestamp: Date;
-  };
+export interface Variant {
+  name?: string;
+  alternativeName?: string;
+  types?: VariantType[];
 }
 
+export interface VariantType {
+  name?: string;
+  alternativeName?: string;
+  sku?: string;
+  price?: Price;
+  description?: string;
+  durationGroupPrices?: DurationGroup[];
+  promotionalPrice?: PromotionalPrice;
+  disabledGroups?: DurationGroup[];
+  displaySku?: string;
+  inventoryDetails?: Stocks;
+}
+
+export interface ProductAdditionalInfo {
+  name?: string;
+  description?: string;
+}
+
+export interface AdditionalInfo {
+  name?: string;
+  description?: string;
+}
+
+export interface Price {
+  amount?: number;
+  currency?: string;
+}
+
+export interface DurationGroup {
+  id?: string;
+  name?: string;
+  price?: Price;
+}
+
+export interface PromotionalPrice {
+  price?: Price;
+  validFrom?: string;
+  validTo?: string;
+}
+
+export interface Stocks {
+  quantity?: number;
+  lowStockThreshold?: number;
+}
+
+export interface DurationVisibility {
+  id?: string;
+  name?: string;
+  isVisible?: boolean;
+}
+
+// Processing Result for the POC
 export interface ProcessingResult {
   success: boolean;
-  products: MenuProduct[];
-  errors: ProcessingError[];
+  products: Product[];
   metadata: ProcessingMetadata;
-}
-
-export interface ProcessingError {
-  code: string;
-  message: string;
-  severity: 'low' | 'medium' | 'high' | 'critical';
-  productId?: string;
-  rawData?: string;
 }
 
 export interface ProcessingMetadata {
   totalProducts: number;
-  successfulProducts: number;
-  failedProducts: number;
   processingTime: number;
   sourceFile: string;
-  fileSize: number;
   fileType: string;
   timestamp: Date;
-}
-
-// Utility types for form handling and validation
-export interface ProductFormData {
-  name: string;
-  price: string;
-  category: string;
-  description?: string;
-  isAvailable: boolean;
-  isAlcoholic: boolean;
-}
-
-export interface ValidationResult {
-  isValid: boolean;
-  errors: Record<string, string[]>;
 }
 
 // API Response types
@@ -149,14 +194,5 @@ export interface ApiResponse<T> {
   data?: T;
   error?: string;
   message?: string;
-}
-
-export interface PaginatedResponse<T> {
-  data: T[];
-  pagination: {
-    page: number;
-    limit: number;
-    total: number;
-    totalPages: number;
-  };
+} 
 } 
