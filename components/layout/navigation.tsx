@@ -59,9 +59,18 @@ export function Navigation() {
       {/* Navigation Tabs */}
       <div className="bg-white border-b px-6">
         <div className="flex space-x-8">
-          <button className="flex items-center space-x-2 py-4 border-b-2 border-green-500 text-green-600">
+          <button 
+            onClick={() => router.push('/')}
+            className="flex items-center space-x-2 py-4 border-b-2 border-green-500 text-green-600"
+          >
             <Package className="w-4 h-4" />
             <span>Products</span>
+          </button>
+          <button 
+            onClick={() => router.push('/llm-demo')}
+            className="flex items-center space-x-2 py-4 text-gray-500 hover:text-gray-700"
+          >
+            <span>LLM Demo</span>
           </button>
           <button className="flex items-center space-x-2 py-4 text-gray-500 hover:text-gray-700">
             <span>Categories</span>

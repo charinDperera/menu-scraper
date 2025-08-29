@@ -1,7 +1,7 @@
 "use client"
 
-import { useState } from "react"
-import { ArrowLeft, Edit2, Trash2, Save, Upload } from "lucide-react"
+import { useState, useEffect } from "react"
+import { ArrowLeft, Edit2, Trash2, Save, Upload, Brain } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -10,6 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
 import { useRouter } from "next/navigation"
+import { ProcessingResult, MenuProduct } from "@/types/product-model"
 
 interface AddOn {
   addOnName: string
@@ -36,73 +37,76 @@ interface ExtractedProduct {
   isAlcoholicProduct: boolean
 }
 
+// Function to map LLM MenuProduct to ExtractedProduct
+function mapLLMProductToExtractedProduct(llmProduct: MenuProduct): ExtractedProduct {
+  return {
+    id: llmProduct.id,
+    productName: llmProduct.name,
+    productAlternativeName: llmProduct.alternativeName || '',
+    image: llmProduct.image || '/placeholder.svg',
+    variants: [
+      {
+        variantId: `${llmProduct.id}-main`,
+        variantName: 'Standard',
+        variantPrice: llmProduct.price,
+        addOns: (llmProduct.addOns || []).map((addon, index) => ({
+          addOnName: addon.name,
+          addOnTypeName: addon.type,
+          addOnSubTypeName: addon.subType || '',
+          addOnPrice: addon.price,
+          priority: addon.priority,
+        })),
+      },
+    ],
+    taxPercentage: 8.5, // Default tax rate
+    isAlcoholicProduct: llmProduct.isAlcoholic,
+  }
+}
+
 export default function MenuReviewPage() {
   const router = useRouter()
   const [editingProduct, setEditingProduct] = useState<ExtractedProduct | null>(null)
   const [editingVariant, setEditingVariant] = useState<{ productId: string; variant: ProductVariant } | null>(null)
   const [isProductDialogOpen, setIsProductDialogOpen] = useState(false)
   const [isVariantDialogOpen, setIsVariantDialogOpen] = useState(false)
+  const [extractedProducts, setExtractedProducts] = useState<ExtractedProduct[]>([])
+  const [llmResult, setLlmResult] = useState<ProcessingResult | null>(null)
+  const [originalFileInfo, setOriginalFileInfo] = useState<any>(null)
+  const [isLoading, setIsLoading] = useState(true)
 
-  const [extractedProducts, setExtractedProducts] = useState<ExtractedProduct[]>([
-    {
-      id: "1",
-      productName: "Margherita Pizza",
-      productAlternativeName: "Classic Margherita",
-      image: "/margherita-pizza.png",
-      variants: [
-        {
-          variantId: "1-small",
-          variantName: 'Small (10")',
-          variantPrice: 12.99,
-          addOns: [
-            {
-              addOnName: "Extra Cheese",
-              addOnTypeName: "Toppings",
-              addOnSubTypeName: "Cheese",
-              addOnPrice: 2.5,
-              priority: 1,
-            },
-          ],
-        },
-        {
-          variantId: "1-large",
-          variantName: 'Large (14")',
-          variantPrice: 18.99,
-          addOns: [],
-        },
-      ],
-      taxPercentage: 8.5,
-      isAlcoholicProduct: false,
-    },
-    {
-      id: "2",
-      productName: "Caesar Salad",
-      productAlternativeName: "Fresh Caesar",
-      image: "/caesar-salad.png",
-      variants: [
-        {
-          variantId: "2-regular",
-          variantName: "Regular",
-          variantPrice: 9.99,
-          addOns: [
-            {
-              addOnName: "Grilled Chicken",
-              addOnTypeName: "Protein",
-              addOnSubTypeName: "Chicken",
-              addOnPrice: 4.0,
-              priority: 1,
-            },
-          ],
-        },
-      ],
-      taxPercentage: 8.5,
-      isAlcoholicProduct: false,
-    },
-  ])
+  useEffect(() => {
+    // Load LLM processing results from sessionStorage
+    const storedResult = sessionStorage.getItem('llmProcessingResult')
+    const storedFileInfo = sessionStorage.getItem('originalFileInfo')
+    
+    if (storedResult && storedFileInfo) {
+      try {
+        const result = JSON.parse(storedResult)
+        const fileInfo = JSON.parse(storedFileInfo)
+        
+        setLlmResult(result)
+        setOriginalFileInfo(fileInfo)
+        
+        // Map LLM products to extracted products
+        const mappedProducts = result.products.map(mapLLMProductToExtractedProduct)
+        setExtractedProducts(mappedProducts)
+        
+        setIsLoading(false)
+      } catch (error) {
+        console.error('Error parsing stored data:', error)
+        setIsLoading(false)
+      }
+    } else {
+      // No stored data, redirect back to main page
+      router.push('/')
+    }
+  }, [router])
 
   const handleSaveProducts = () => {
     console.log("Saving products:", extractedProducts)
-          router.push("/?success=true")
+    // Here you would typically send the data to your API
+    // For now, we'll just redirect back with success
+    router.push("/?success=true")
   }
 
   const handleEditProduct = (product: ExtractedProduct) => {
@@ -146,6 +150,17 @@ export default function MenuReviewPage() {
     setExtractedProducts((prev) => prev.filter((product) => product.id !== productId))
   }
 
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading extracted products...</p>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Page Header */}
@@ -154,17 +169,25 @@ export default function MenuReviewPage() {
           <div className="flex items-center space-x-4">
             <Button variant="ghost" onClick={() => router.back()} className="text-gray-600 hover:text-gray-800">
               <ArrowLeft className="w-4 h-4 mr-2" />
-              Back to Products
+              Back to Upload
             </Button>
             <div>
               <h1 className="text-2xl font-semibold text-gray-800">Review Extracted Menu Items</h1>
               <p className="text-sm text-gray-500 mt-1">
                 Review and edit the products extracted from your menu before adding them
               </p>
+              {llmResult && (
+                <div className="flex items-center space-x-2 mt-2">
+                  <Brain className="w-4 h-4 text-blue-600" />
+                  <span className="text-xs text-blue-600">
+                    AI processed • {llmResult.metadata.totalProducts} products • {llmResult.metadata.processingTime}ms
+                  </span>
+                </div>
+              )}
             </div>
           </div>
           <div className="flex space-x-3">
-            <Button variant="outline" onClick={() => router.back()}>
+            <Button variant="outline" onClick={() => router.push('/')}>
               Cancel
             </Button>
             <Button className="bg-green-500 hover:bg-green-600 text-white" onClick={handleSaveProducts}>
@@ -178,6 +201,25 @@ export default function MenuReviewPage() {
       {/* Main Content */}
       <div className="p-6">
         <div className="max-w-6xl mx-auto">
+          {/* File Info Summary */}
+          {originalFileInfo && (
+            <Card className="mb-6">
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between text-sm text-gray-600">
+                  <div className="flex items-center space-x-4">
+                    <span><strong>Source:</strong> {originalFileInfo.fileName}</span>
+                    <span><strong>Type:</strong> {originalFileInfo.fileType || 'Unknown'}</span>
+                    <span><strong>Size:</strong> {Math.round(originalFileInfo.fileSize / 1024)}KB</span>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Brain className="w-4 h-4 text-blue-600" />
+                    <span>AI Enhanced Extraction</span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
           <div className="grid gap-6">
             {extractedProducts.map((product) => (
               <Card key={product.id} className="overflow-hidden">
@@ -274,7 +316,7 @@ export default function MenuReviewPage() {
               </div>
               <h3 className="text-xl font-medium text-gray-800 mb-2">No products extracted</h3>
               <p className="text-gray-500 mb-6">Please go back and upload a menu file to extract products.</p>
-              <Button onClick={() => router.back()}>
+              <Button onClick={() => router.push('/')}>
                 <ArrowLeft className="w-4 h-4 mr-2" />
                 Back to Upload
               </Button>
