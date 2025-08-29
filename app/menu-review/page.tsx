@@ -1,7 +1,21 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { ArrowLeft, Edit2, Trash2, Save, Upload, Brain, Plus, X, ChevronDown, ChevronRight } from "lucide-react"
+import {
+  ArrowLeft,
+  Edit2,
+  Trash2,
+  Save,
+  Upload,
+  Brain,
+  Plus,
+  X,
+  ChevronDown,
+  ChevronRight,
+  Star,
+  Clock,
+  DollarSign,
+} from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -11,13 +25,13 @@ import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
 import { Textarea } from "@/components/ui/textarea"
 import { useRouter } from "next/navigation"
-import { ProcessingResult, Product, AddOn, AddOnType, AddOnSubType, Price } from "@/types/product-model"
+import type { ProcessingResult, Product, AddOn, AddOnType, AddOnSubType } from "@/types/product-model"
 
 interface OriginalFileInfo {
-  fileName: string;
-  fileType?: string;
-  fileSize: number;
-  originalText?: string;
+  fileName: string
+  fileType?: string
+  fileSize: number
+  originalText?: string
 }
 
 // Function to map LLM Product to display format
@@ -25,7 +39,7 @@ function mapLLMProductToDisplayProduct(llmProduct: Product): Product {
   return {
     ...llmProduct,
     productId: llmProduct.productId || `product-${Date.now()}-${Math.random()}`,
-    name: llmProduct.name || 'Unknown Product',
+    name: llmProduct.name || "Unknown Product",
     isActive: llmProduct.isActive !== false, // Default to true
     isAlcoholicProduct: llmProduct.isAlcoholicProduct === true,
     deliverable: llmProduct.deliverable === true,
@@ -37,7 +51,7 @@ function mapLLMProductToDisplayProduct(llmProduct: Product): Product {
 function createNewAddOn(): AddOn {
   return {
     groupId: `addon-${Date.now()}-${Math.random()}`,
-    name: '',
+    name: "",
     types: [],
     mandatory: false,
     minSelectionsRequired: 0,
@@ -51,7 +65,7 @@ function createNewAddOn(): AddOn {
 // Helper function to create a new add-on type
 function createNewAddOnType(): AddOnType {
   return {
-    name: '',
+    name: "",
     subTypes: [],
   }
 }
@@ -59,8 +73,8 @@ function createNewAddOnType(): AddOnType {
 // Helper function to create a new add-on sub-type
 function createNewAddOnSubType(): AddOnSubType {
   return {
-    name: '',
-    price: { amount: 0, currency: 'USD' },
+    name: "",
+    price: { amount: 0, currency: "USD" },
     defaultSelection: false,
     isActive: true,
   }
@@ -78,29 +92,29 @@ export default function MenuReviewPage() {
 
   useEffect(() => {
     // Load LLM processing results from sessionStorage
-    const storedResult = sessionStorage.getItem('llmProcessingResult')
-    const storedFileInfo = sessionStorage.getItem('originalFileInfo')
-    
+    const storedResult = sessionStorage.getItem("llmProcessingResult")
+    const storedFileInfo = sessionStorage.getItem("originalFileInfo")
+
     if (storedResult && storedFileInfo) {
       try {
         const result = JSON.parse(storedResult)
         const fileInfo = JSON.parse(storedFileInfo)
-        
+
         setLlmResult(result)
         setOriginalFileInfo(fileInfo)
-        
+
         // Map LLM products to display products
         const mappedProducts = result.products.map(mapLLMProductToDisplayProduct)
         setProducts(mappedProducts)
-        
+
         setIsLoading(false)
       } catch (error) {
-        console.error('Error parsing stored data:', error)
+        console.error("Error parsing stored data:", error)
         setIsLoading(false)
       }
     } else {
       // No stored data, redirect back to main page
-      router.push('/')
+      router.push("/")
     }
   }, [router])
 
@@ -119,7 +133,9 @@ export default function MenuReviewPage() {
   const handleSaveProduct = () => {
     if (!editingProduct) return
 
-    setProducts((prev) => prev.map((product) => (product.productId === editingProduct.productId ? editingProduct : product)))
+    setProducts((prev) =>
+      prev.map((product) => (product.productId === editingProduct.productId ? editingProduct : product)),
+    )
     setIsProductDialogOpen(false)
     setEditingProduct(null)
   }
@@ -134,7 +150,7 @@ export default function MenuReviewPage() {
     const newAddOn = createNewAddOn()
     setEditingProduct({
       ...editingProduct,
-      addOns: [...(editingProduct.addOns || []), newAddOn]
+      addOns: [...(editingProduct.addOns || []), newAddOn],
     })
   }
 
@@ -143,7 +159,7 @@ export default function MenuReviewPage() {
     const updatedAddOns = editingProduct.addOns?.filter((_, index) => index !== addOnIndex) || []
     setEditingProduct({
       ...editingProduct,
-      addOns: updatedAddOns
+      addOns: updatedAddOns,
     })
   }
 
@@ -153,7 +169,7 @@ export default function MenuReviewPage() {
     updatedAddOns[addOnIndex] = { ...updatedAddOns[addOnIndex], [field]: value }
     setEditingProduct({
       ...editingProduct,
-      addOns: updatedAddOns
+      addOns: updatedAddOns,
     })
   }
 
@@ -164,7 +180,7 @@ export default function MenuReviewPage() {
     updatedAddOns[addOnIndex].types = [...(updatedAddOns[addOnIndex].types || []), newType]
     setEditingProduct({
       ...editingProduct,
-      addOns: updatedAddOns
+      addOns: updatedAddOns,
     })
   }
 
@@ -174,7 +190,7 @@ export default function MenuReviewPage() {
     updatedAddOns[addOnIndex].types = updatedAddOns[addOnIndex].types?.filter((_, index) => index !== typeIndex) || []
     setEditingProduct({
       ...editingProduct,
-      addOns: updatedAddOns
+      addOns: updatedAddOns,
     })
   }
 
@@ -184,7 +200,7 @@ export default function MenuReviewPage() {
     updatedAddOns[addOnIndex].types![typeIndex] = { ...updatedAddOns[addOnIndex].types![typeIndex], [field]: value }
     setEditingProduct({
       ...editingProduct,
-      addOns: updatedAddOns
+      addOns: updatedAddOns,
     })
   }
 
@@ -192,33 +208,43 @@ export default function MenuReviewPage() {
     if (!editingProduct) return
     const newSubType = createNewAddOnSubType()
     const updatedAddOns = [...(editingProduct.addOns || [])]
-    updatedAddOns[addOnIndex].types![typeIndex].subTypes = [...(updatedAddOns[addOnIndex].types![typeIndex].subTypes || []), newSubType]
+    updatedAddOns[addOnIndex].types![typeIndex].subTypes = [
+      ...(updatedAddOns[addOnIndex].types![typeIndex].subTypes || []),
+      newSubType,
+    ]
     setEditingProduct({
       ...editingProduct,
-      addOns: updatedAddOns
+      addOns: updatedAddOns,
     })
   }
 
   const removeAddOnSubType = (addOnIndex: number, typeIndex: number, subTypeIndex: number) => {
     if (!editingProduct) return
     const updatedAddOns = [...(editingProduct.addOns || [])]
-    updatedAddOns[addOnIndex].types![typeIndex].subTypes = updatedAddOns[addOnIndex].types![typeIndex].subTypes?.filter((_, index) => index !== subTypeIndex) || []
+    updatedAddOns[addOnIndex].types![typeIndex].subTypes =
+      updatedAddOns[addOnIndex].types![typeIndex].subTypes?.filter((_, index) => index !== subTypeIndex) || []
     setEditingProduct({
       ...editingProduct,
-      addOns: updatedAddOns
+      addOns: updatedAddOns,
     })
   }
 
-  const updateAddOnSubType = (addOnIndex: number, typeIndex: number, subTypeIndex: number, field: keyof AddOnSubType, value: any) => {
+  const updateAddOnSubType = (
+    addOnIndex: number,
+    typeIndex: number,
+    subTypeIndex: number,
+    field: keyof AddOnSubType,
+    value: any,
+  ) => {
     if (!editingProduct) return
     const updatedAddOns = [...(editingProduct.addOns || [])]
-    updatedAddOns[addOnIndex].types![typeIndex].subTypes![subTypeIndex] = { 
-      ...updatedAddOns[addOnIndex].types![typeIndex].subTypes![subTypeIndex], 
-      [field]: value 
+    updatedAddOns[addOnIndex].types![typeIndex].subTypes![subTypeIndex] = {
+      ...updatedAddOns[addOnIndex].types![typeIndex].subTypes![subTypeIndex],
+      [field]: value,
     }
     setEditingProduct({
       ...editingProduct,
-      addOns: updatedAddOns
+      addOns: updatedAddOns,
     })
   }
 
@@ -234,222 +260,293 @@ export default function MenuReviewPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading extracted products...</p>
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center space-y-4">
+          <div className="relative">
+            <div className="w-16 h-16 border-4 border-primary/20 border-t-primary rounded-full animate-spin mx-auto"></div>
+            <Brain className="w-6 h-6 text-primary absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2" />
+          </div>
+          <div className="space-y-2">
+            <h3 className="text-lg font-semibold text-foreground">Processing Menu Items</h3>
+            <p className="text-muted-foreground">AI is extracting and organizing your menu data...</p>
+          </div>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Page Header */}
-      <div className="bg-white border-b px-6 py-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-4">
-            <Button variant="ghost" onClick={() => router.back()} className="text-gray-600 hover:text-gray-800">
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              Back to Upload
-            </Button>
-            <div>
-              <h1 className="text-2xl font-semibold text-gray-800">Review Extracted Menu Items</h1>
-              <p className="text-sm text-gray-500 mt-1">
-                Review and edit the products extracted from your menu before adding them
-              </p>
-              {llmResult && (
-                <div className="flex items-center space-x-2 mt-2">
-                  <Brain className="w-4 h-4 text-blue-600" />
-                  <span className="text-xs text-blue-600">
-                    AI processed • {llmResult.metadata.totalProducts} products • {llmResult.metadata.processingTime}ms
-                  </span>
-                </div>
-              )}
+    <div className="min-h-screen bg-background">
+      <div className="bg-card border-b border-border shadow-sm">
+        <div className="max-w-7xl mx-auto px-6 py-6">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-6">
+              <Button
+                variant="ghost"
+                onClick={() => router.back()}
+                className="text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+              >
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                Back to Upload
+              </Button>
+              <div className="space-y-1">
+                <h1 className="text-3xl font-bold text-foreground text-balance">Review Extracted Menu Items</h1>
+                <p className="text-muted-foreground text-pretty">
+                  Review and edit the products extracted from your menu before adding them to your system
+                </p>
+                {llmResult && (
+                  <div className="flex items-center space-x-3 mt-3">
+                    <div className="flex items-center space-x-2 px-3 py-1.5 bg-primary/10 rounded-full">
+                      <Brain className="w-4 h-4 text-primary" />
+                      <span className="text-sm font-medium text-primary">AI Enhanced</span>
+                    </div>
+                    <div className="flex items-center space-x-4 text-sm text-muted-foreground">
+                      <span className="flex items-center space-x-1">
+                        <Clock className="w-3 h-3" />
+                        <span>{llmResult.metadata.processingTime}ms</span>
+                      </span>
+                      <span>{llmResult.metadata.totalProducts} products extracted</span>
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
-          <div className="flex space-x-3">
-            <Button variant="outline" onClick={() => router.push('/')}>
-              Cancel
-            </Button>
-            <Button className="bg-green-500 hover:bg-green-600 text-white" onClick={handleSaveProducts}>
-              <Save className="w-4 h-4 mr-2" />
-              Save All Products ({products.length})
-            </Button>
+            <div className="flex items-center space-x-3">
+              <Button variant="outline" onClick={() => router.push("/")} className="hover:bg-muted">
+                Cancel
+              </Button>
+              <Button
+                className="bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg hover:shadow-xl transition-all duration-200"
+                onClick={handleSaveProducts}
+              >
+                <Save className="w-4 h-4 mr-2" />
+                Save All Products ({products.length})
+              </Button>
+            </div>
           </div>
         </div>
       </div>
 
       {/* Main Content */}
-      <div className="p-6">
-        <div className="max-w-6xl mx-auto">
-          {/* File Info Summary */}
-          {originalFileInfo && (
-            <Card className="mb-6">
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between text-sm text-gray-600">
-                  <div className="flex items-center space-x-4">
-                    <span><strong>Source:</strong> {originalFileInfo.fileName}</span>
-                    <span><strong>Type:</strong> {originalFileInfo.fileType || 'Unknown'}</span>
-                    <span><strong>Size:</strong> {Math.round(originalFileInfo.fileSize / 1024)}KB</span>
+      <div className="max-w-7xl mx-auto p-6">
+        {originalFileInfo && (
+          <Card className="mb-8 border-border shadow-sm hover:shadow-md transition-shadow duration-200">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-6 text-sm">
+                  <div className="flex items-center space-x-2">
+                    <span className="font-medium text-foreground">Source:</span>
+                    <span className="text-muted-foreground">{originalFileInfo.fileName}</span>
                   </div>
                   <div className="flex items-center space-x-2">
-                    <Brain className="w-4 h-4 text-blue-600" />
-                    <span>AI Enhanced Extraction</span>
+                    <span className="font-medium text-foreground">Type:</span>
+                    <Badge variant="secondary">{originalFileInfo.fileType || "Unknown"}</Badge>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <span className="font-medium text-foreground">Size:</span>
+                    <span className="text-muted-foreground">{Math.round(originalFileInfo.fileSize / 1024)}KB</span>
                   </div>
                 </div>
+                <div className="flex items-center space-x-2 px-3 py-1.5 bg-accent/10 rounded-full">
+                  <Brain className="w-4 h-4 text-accent" />
+                  <span className="text-sm font-medium text-accent">AI Enhanced Extraction</span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        <div className="grid gap-6">
+          {products.map((product) => (
+            <Card
+              key={product.productId}
+              className="overflow-hidden border-border shadow-sm hover:shadow-lg transition-all duration-300 group"
+            >
+              <CardHeader className="bg-card border-b border-border">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-4">
+                    <div className="relative w-20 h-20 bg-muted rounded-xl overflow-hidden shadow-sm">
+                      <img
+                        src={
+                          product.images?.[0] ||
+                          product.thumbImages?.[0] ||
+                          "/placeholder.svg?height=80&width=80&query=food item"
+                        }
+                        alt={product.name}
+                        className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                      />
+                      {product.isFeatured && (
+                        <div className="absolute top-2 right-2">
+                          <Star className="w-4 h-4 text-yellow-500 fill-current" />
+                        </div>
+                      )}
+                    </div>
+                    <div className="space-y-1">
+                      <CardTitle className="text-xl font-bold text-foreground text-balance">{product.name}</CardTitle>
+                      {product.alternativeName && (
+                        <p className="text-sm text-muted-foreground">{product.alternativeName}</p>
+                      )}
+                      {product.variants?.types?.[0]?.price && (
+                        <div className="flex items-center space-x-1 text-lg font-semibold text-primary">
+                          <DollarSign className="w-4 h-4" />
+                          <span>{product.variants.types[0].price.amount}</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    {product.taxPercentage && (
+                      <Badge variant="outline" className="border-muted-foreground/20">
+                        Tax: {product.taxPercentage}%
+                      </Badge>
+                    )}
+                    {product.isAlcoholicProduct && <Badge variant="destructive">Alcoholic</Badge>}
+                    {product.isFeatured && (
+                      <Badge className="bg-yellow-500/10 text-yellow-700 border-yellow-500/20">Featured</Badge>
+                    )}
+                    {product.deliverable && (
+                      <Badge className="bg-primary/10 text-primary border-primary/20">Delivery</Badge>
+                    )}
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleEditProduct(product)}
+                      className="hover:bg-primary/10 hover:text-primary transition-colors"
+                    >
+                      <Edit2 className="w-4 h-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleRemoveProduct(product.productId!)}
+                      className="text-destructive hover:text-destructive hover:bg-destructive/10 transition-colors"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </div>
+              </CardHeader>
+
+              <CardContent className="p-6 space-y-6">
+                {product.description && (
+                  <div className="space-y-2">
+                    <h4 className="font-semibold text-foreground">Description</h4>
+                    <p className="text-muted-foreground leading-relaxed text-pretty">{product.description}</p>
+                  </div>
+                )}
+
+                {product.categories && product.categories.length > 0 && (
+                  <div className="space-y-3">
+                    <h4 className="font-semibold text-foreground">Categories</h4>
+                    <div className="flex flex-wrap gap-2">
+                      {product.categories.map((category, index) => (
+                        <Badge key={index} variant="outline" className="hover:bg-muted transition-colors">
+                          {category}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {product.tags && product.tags.length > 0 && (
+                  <div className="space-y-3">
+                    <h4 className="font-semibold text-foreground">Tags</h4>
+                    <div className="flex flex-wrap gap-2">
+                      {product.tags.map((tag, index) => (
+                        <Badge key={index} variant="secondary" className="hover:bg-secondary/80 transition-colors">
+                          {tag}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {product.addOns && product.addOns.length > 0 && (
+                  <div className="space-y-3">
+                    <h4 className="font-semibold text-foreground">Add-ons</h4>
+                    <div className="space-y-3">
+                      {product.addOns.map((addOn, index) => (
+                        <div
+                          key={index}
+                          className="flex items-center justify-between p-4 bg-muted/50 rounded-lg border border-border hover:bg-muted/70 transition-colors"
+                        >
+                          <div className="space-y-1">
+                            <span className="font-medium text-foreground">{addOn.name}</span>
+                            {addOn.mandatory && (
+                              <Badge variant="destructive" className="ml-2">
+                                Required
+                              </Badge>
+                            )}
+                          </div>
+                          {addOn.types && addOn.types[0]?.subTypes && addOn.types[0].subTypes[0]?.price && (
+                            <div className="flex items-center space-x-1 text-primary font-semibold">
+                              <Plus className="w-3 h-3" />
+                              <DollarSign className="w-3 h-3" />
+                              <span>{addOn.types[0].subTypes[0].price.amount}</span>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {product.variants && (
+                  <div className="space-y-3">
+                    <h4 className="font-semibold text-foreground">Variants</h4>
+                    <div className="space-y-3">
+                      {product.variants.types?.map((variantType, index) => (
+                        <div
+                          key={index}
+                          className="border border-border rounded-lg p-4 bg-card hover:bg-muted/30 transition-colors"
+                        >
+                          <div className="flex items-center justify-between">
+                            <span className="font-medium text-foreground">{variantType.name}</span>
+                            {variantType.price && (
+                              <div className="flex items-center space-x-1 text-lg font-bold text-primary">
+                                <DollarSign className="w-4 h-4" />
+                                <span>{variantType.price.amount}</span>
+                              </div>
+                            )}
+                          </div>
+                          {variantType.description && (
+                            <p className="text-sm text-muted-foreground mt-2 text-pretty">{variantType.description}</p>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </CardContent>
             </Card>
-          )}
+          ))}
+        </div>
 
-          <div className="grid gap-6">
-            {products.map((product) => (
-              <Card key={product.productId} className="overflow-hidden">
-                <CardHeader className="bg-gray-50 border-b">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-4">
-                      <div className="w-16 h-16 bg-gray-200 rounded-lg overflow-hidden">
-                        <img
-                          src={product.images?.[0] || product.thumbImages?.[0] || "/placeholder.svg"}
-                          alt={product.name}
-                          className="w-full h-full object-cover"
-                        />
-                      </div>
-                      <div>
-                        <CardTitle className="text-lg">{product.name}</CardTitle>
-                        {product.alternativeName && (
-                          <p className="text-sm text-gray-500">{product.alternativeName}</p>
-                        )}
-                      </div>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      {product.taxPercentage && (
-                        <Badge variant="secondary">Tax: {product.taxPercentage}%</Badge>
-                      )}
-                      {product.isAlcoholicProduct && <Badge variant="destructive">Alcoholic</Badge>}
-                      {product.isFeatured && <Badge variant="secondary">Featured</Badge>}
-                      {product.deliverable && <Badge variant="secondary">Delivery</Badge>}
-                      <Button variant="ghost" size="sm" onClick={() => handleEditProduct(product)}>
-                        <Edit2 className="w-4 h-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleRemoveProduct(product.productId!)}
-                        className="text-red-600 hover:text-red-800"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  </div>
-                </CardHeader>
-
-                <CardContent className="p-6">
-                  <div className="space-y-4">
-                    {product.description && (
-                      <div>
-                        <h4 className="font-medium text-gray-800 mb-2">Description</h4>
-                        <p className="text-gray-600">{product.description}</p>
-                      </div>
-                    )}
-
-                    {product.categories && product.categories.length > 0 && (
-                      <div>
-                        <h4 className="font-medium text-gray-800 mb-2">Categories</h4>
-                        <div className="flex flex-wrap gap-2">
-                          {product.categories.map((category, index) => (
-                            <Badge key={index} variant="outline">{category}</Badge>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {product.tags && product.tags.length > 0 && (
-                      <div>
-                        <h4 className="font-medium text-gray-800 mb-2">Tags</h4>
-                        <div className="flex flex-wrap gap-2">
-                          {product.tags.map((tag, index) => (
-                            <Badge key={index} variant="secondary">{tag}</Badge>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {product.addOns && product.addOns.length > 0 && (
-                      <div>
-                        <h4 className="font-medium text-gray-800 mb-2">Add-ons</h4>
-                        <div className="space-y-2">
-                          {product.addOns.map((addOn, index) => (
-                            <div
-                              key={index}
-                              className="flex items-center justify-between text-sm bg-gray-50 p-2 rounded border"
-                            >
-                              <div>
-                                <span className="font-medium">{addOn.name}</span>
-                                {addOn.mandatory && (
-                                  <Badge variant="destructive" className="ml-2">Required</Badge>
-                                )}
-                              </div>
-                              {addOn.types && addOn.types[0]?.subTypes && addOn.types[0].subTypes[0]?.price && (
-                                <span className="text-green-600 font-medium">
-                                  +${addOn.types[0].subTypes[0].price.amount}
-                                </span>
-                              )}
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {product.variants && (
-                      <div>
-                        <h4 className="font-medium text-gray-800 mb-2">Variants</h4>
-                        <div className="space-y-2">
-                          {product.variants.types?.map((variantType, index) => (
-                            <div key={index} className="border rounded-lg p-3 bg-gray-50">
-                              <div className="flex items-center justify-between">
-                                <span className="font-medium">{variantType.name}</span>
-                                {variantType.price && (
-                                  <span className="text-lg font-semibold text-green-600">
-                                    ${variantType.price.amount}
-                                  </span>
-                                )}
-                              </div>
-                              {variantType.description && (
-                                <p className="text-sm text-gray-600 mt-1">{variantType.description}</p>
-                              )}
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-
-          {products.length === 0 && (
-            <div className="text-center py-16">
-              <div className="w-24 h-24 bg-gray-100 rounded-lg mx-auto mb-6 flex items-center justify-center">
-                <Upload className="w-12 h-12 text-gray-400" />
-              </div>
-              <h3 className="text-xl font-medium text-gray-800 mb-2">No products extracted</h3>
-              <p className="text-gray-500 mb-6">Please go back and upload a menu file to extract products.</p>
-              <Button onClick={() => router.push('/')}>
+        {products.length === 0 && (
+          <div className="text-center py-20">
+            <div className="w-32 h-32 bg-muted rounded-2xl mx-auto mb-8 flex items-center justify-center shadow-sm">
+              <Upload className="w-16 h-16 text-muted-foreground" />
+            </div>
+            <div className="space-y-4 max-w-md mx-auto">
+              <h3 className="text-2xl font-bold text-foreground text-balance">No products extracted</h3>
+              <p className="text-muted-foreground text-pretty">
+                It looks like we couldn't extract any menu items from your file. Please try uploading a different menu
+                file with clear product information.
+              </p>
+              <Button onClick={() => router.push("/")} className="mt-6">
                 <ArrowLeft className="w-4 h-4 mr-2" />
                 Back to Upload
               </Button>
             </div>
-          )}
-        </div>
+          </div>
+        )}
       </div>
 
       {/* Product Edit Dialog */}
       <Dialog open={isProductDialogOpen} onOpenChange={setIsProductDialogOpen}>
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Edit Product</DialogTitle>
+            <DialogTitle className="text-xl font-bold">Edit Product</DialogTitle>
           </DialogHeader>
           {editingProduct && (
             <div className="space-y-6">
@@ -467,7 +564,7 @@ export default function MenuReviewPage() {
                   <Label htmlFor="alternativeName">Alternative Name</Label>
                   <Input
                     id="alternativeName"
-                    value={editingProduct.alternativeName || ''}
+                    value={editingProduct.alternativeName || ""}
                     onChange={(e) => setEditingProduct({ ...editingProduct, alternativeName: e.target.value })}
                   />
                 </div>
@@ -477,7 +574,7 @@ export default function MenuReviewPage() {
                 <Label htmlFor="description">Description</Label>
                 <Textarea
                   id="description"
-                  value={editingProduct.description || ''}
+                  value={editingProduct.description || ""}
                   onChange={(e) => setEditingProduct({ ...editingProduct, description: e.target.value })}
                   rows={3}
                 />
@@ -490,9 +587,12 @@ export default function MenuReviewPage() {
                     id="taxPercentage"
                     type="number"
                     step="0.1"
-                    value={editingProduct.taxPercentage || ''}
+                    value={editingProduct.taxPercentage || ""}
                     onChange={(e) =>
-                      setEditingProduct({ ...editingProduct, taxPercentage: Number.parseFloat(e.target.value) || undefined })
+                      setEditingProduct({
+                        ...editingProduct,
+                        taxPercentage: Number.parseFloat(e.target.value) || undefined,
+                      })
                     }
                   />
                 </div>
@@ -501,7 +601,7 @@ export default function MenuReviewPage() {
                   <Input
                     id="priority"
                     type="number"
-                    value={editingProduct.priority || ''}
+                    value={editingProduct.priority || ""}
                     onChange={(e) =>
                       setEditingProduct({ ...editingProduct, priority: Number.parseInt(e.target.value) || undefined })
                     }
@@ -520,7 +620,9 @@ export default function MenuReviewPage() {
                         setEditingProduct({ ...editingProduct, isAlcoholicProduct: checked })
                       }
                     />
-                    <span className="text-sm text-gray-600">{editingProduct.isAlcoholicProduct ? "Yes" : "No"}</span>
+                    <span className="text-sm text-muted-foreground">
+                      {editingProduct.isAlcoholicProduct ? "Yes" : "No"}
+                    </span>
                   </div>
                 </div>
                 <div className="space-y-2">
@@ -529,11 +631,9 @@ export default function MenuReviewPage() {
                     <Switch
                       id="featured"
                       checked={editingProduct.isFeatured || false}
-                      onCheckedChange={(checked) =>
-                        setEditingProduct({ ...editingProduct, isFeatured: checked })
-                      }
+                      onCheckedChange={(checked) => setEditingProduct({ ...editingProduct, isFeatured: checked })}
                     />
-                    <span className="text-sm text-gray-600">{editingProduct.isFeatured ? "Yes" : "No"}</span>
+                    <span className="text-sm text-muted-foreground">{editingProduct.isFeatured ? "Yes" : "No"}</span>
                   </div>
                 </div>
               </div>
@@ -545,11 +645,9 @@ export default function MenuReviewPage() {
                     <Switch
                       id="deliverable"
                       checked={editingProduct.deliverable || false}
-                      onCheckedChange={(checked) =>
-                        setEditingProduct({ ...editingProduct, deliverable: checked })
-                      }
+                      onCheckedChange={(checked) => setEditingProduct({ ...editingProduct, deliverable: checked })}
                     />
-                    <span className="text-sm text-gray-600">{editingProduct.deliverable ? "Yes" : "No"}</span>
+                    <span className="text-sm text-muted-foreground">{editingProduct.deliverable ? "Yes" : "No"}</span>
                   </div>
                 </div>
                 <div className="space-y-2">
@@ -558,11 +656,11 @@ export default function MenuReviewPage() {
                     <Switch
                       id="active"
                       checked={editingProduct.isActive !== false}
-                      onCheckedChange={(checked) =>
-                        setEditingProduct({ ...editingProduct, isActive: checked })
-                      }
+                      onCheckedChange={(checked) => setEditingProduct({ ...editingProduct, isActive: checked })}
                     />
-                    <span className="text-sm text-gray-600">{editingProduct.isActive !== false ? "Yes" : "No"}</span>
+                    <span className="text-sm text-muted-foreground">
+                      {editingProduct.isActive !== false ? "Yes" : "No"}
+                    </span>
                   </div>
                 </div>
               </div>
@@ -571,7 +669,7 @@ export default function MenuReviewPage() {
               <div className="border-t pt-6">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-lg font-medium">Add-ons Configuration</h3>
-                  <Button onClick={addAddOn} size="sm" className="bg-blue-500 hover:bg-blue-600">
+                  <Button onClick={addAddOn} size="sm" className="bg-primary hover:bg-primary/90">
                     <Plus className="w-4 h-4 mr-2" />
                     Add Add-on Group
                   </Button>
@@ -601,7 +699,7 @@ export default function MenuReviewPage() {
                             variant="ghost"
                             size="sm"
                             onClick={() => removeAddOn(addOnIndex)}
-                            className="text-red-600 hover:text-red-800 p-1 h-6 w-6"
+                            className="text-destructive hover:text-destructive hover:bg-destructive/10 p-1 h-6 w-6"
                           >
                             <X className="w-4 h-4" />
                           </Button>
@@ -616,15 +714,15 @@ export default function MenuReviewPage() {
                               <Label>Group Name</Label>
                               <Input
                                 value={addOn.name}
-                                onChange={(e) => updateAddOn(addOnIndex, 'name', e.target.value)}
+                                onChange={(e) => updateAddOn(addOnIndex, "name", e.target.value)}
                                 placeholder="e.g., Toppings, Size, Extras"
                               />
                             </div>
                             <div className="space-y-2">
                               <Label>Alternative Name</Label>
                               <Input
-                                value={addOn.alternativeName || ''}
-                                onChange={(e) => updateAddOn(addOnIndex, 'alternativeName', e.target.value)}
+                                value={addOn.alternativeName || ""}
+                                onChange={(e) => updateAddOn(addOnIndex, "alternativeName", e.target.value)}
                                 placeholder="Optional alternative name"
                               />
                             </div>
@@ -637,7 +735,9 @@ export default function MenuReviewPage() {
                                 type="number"
                                 min="0"
                                 value={addOn.minSelectionsRequired || 0}
-                                onChange={(e) => updateAddOn(addOnIndex, 'minSelectionsRequired', Number.parseInt(e.target.value) || 0)}
+                                onChange={(e) =>
+                                  updateAddOn(addOnIndex, "minSelectionsRequired", Number.parseInt(e.target.value) || 0)
+                                }
                               />
                             </div>
                             <div className="space-y-2">
@@ -646,7 +746,9 @@ export default function MenuReviewPage() {
                                 type="number"
                                 min="1"
                                 value={addOn.maxSelectionsAllowed || 1}
-                                onChange={(e) => updateAddOn(addOnIndex, 'maxSelectionsAllowed', Number.parseInt(e.target.value) || 1)}
+                                onChange={(e) =>
+                                  updateAddOn(addOnIndex, "maxSelectionsAllowed", Number.parseInt(e.target.value) || 1)
+                                }
                               />
                             </div>
                           </div>
@@ -657,7 +759,9 @@ export default function MenuReviewPage() {
                               <Input
                                 type="number"
                                 value={addOn.priority || 0}
-                                onChange={(e) => updateAddOn(addOnIndex, 'priority', Number.parseInt(e.target.value) || 0)}
+                                onChange={(e) =>
+                                  updateAddOn(addOnIndex, "priority", Number.parseInt(e.target.value) || 0)
+                                }
                               />
                             </div>
                             <div className="space-y-2">
@@ -665,9 +769,11 @@ export default function MenuReviewPage() {
                               <div className="flex items-center space-x-2 pt-2">
                                 <Switch
                                   checked={addOn.isActive !== false}
-                                  onCheckedChange={(checked) => updateAddOn(addOnIndex, 'isActive', checked)}
+                                  onCheckedChange={(checked) => updateAddOn(addOnIndex, "isActive", checked)}
                                 />
-                                <span className="text-sm text-gray-600">{addOn.isActive !== false ? "Yes" : "No"}</span>
+                                <span className="text-sm text-muted-foreground">
+                                  {addOn.isActive !== false ? "Yes" : "No"}
+                                </span>
                               </div>
                             </div>
                           </div>
@@ -678,9 +784,9 @@ export default function MenuReviewPage() {
                               <div className="flex items-center space-x-2 pt-2">
                                 <Switch
                                   checked={addOn.mandatory || false}
-                                  onCheckedChange={(checked) => updateAddOn(addOnIndex, 'mandatory', checked)}
+                                  onCheckedChange={(checked) => updateAddOn(addOnIndex, "mandatory", checked)}
                                 />
-                                <span className="text-sm text-gray-600">{addOn.mandatory ? "Yes" : "No"}</span>
+                                <span className="text-sm text-muted-foreground">{addOn.mandatory ? "Yes" : "No"}</span>
                               </div>
                             </div>
                             <div className="space-y-2">
@@ -688,9 +794,11 @@ export default function MenuReviewPage() {
                               <div className="flex items-center space-x-2 pt-2">
                                 <Switch
                                   checked={addOn.isMultiSelectable || false}
-                                  onCheckedChange={(checked) => updateAddOn(addOnIndex, 'isMultiSelectable', checked)}
+                                  onCheckedChange={(checked) => updateAddOn(addOnIndex, "isMultiSelectable", checked)}
                                 />
-                                <span className="text-sm text-gray-600">{addOn.isMultiSelectable ? "Yes" : "No"}</span>
+                                <span className="text-sm text-muted-foreground">
+                                  {addOn.isMultiSelectable ? "Yes" : "No"}
+                                </span>
                               </div>
                             </div>
                           </div>
@@ -707,14 +815,14 @@ export default function MenuReviewPage() {
 
                             <div className="space-y-3">
                               {addOn.types?.map((type, typeIndex) => (
-                                <div key={typeIndex} className="border rounded-lg p-3 bg-gray-50">
+                                <div key={typeIndex} className="border rounded-lg p-3 bg-muted/50">
                                   <div className="flex items-center justify-between mb-3">
                                     <span className="font-medium">Type {typeIndex + 1}</span>
                                     <Button
                                       variant="ghost"
                                       size="sm"
                                       onClick={() => removeAddOnType(addOnIndex, typeIndex)}
-                                      className="text-red-600 hover:text-red-800 p-1 h-6 w-6"
+                                      className="text-destructive hover:text-destructive hover:bg-destructive/10 p-1 h-6 w-6"
                                     >
                                       <X className="w-4 h-4" />
                                     </Button>
@@ -725,8 +833,8 @@ export default function MenuReviewPage() {
                                       <Label className="text-sm">Type Name</Label>
                                       <Input
                                         size={1}
-                                        value={type.name || ''}
-                                        onChange={(e) => updateAddOnType(addOnIndex, typeIndex, 'name', e.target.value)}
+                                        value={type.name || ""}
+                                        onChange={(e) => updateAddOnType(addOnIndex, typeIndex, "name", e.target.value)}
                                         placeholder="e.g., Small, Medium, Large"
                                       />
                                     </div>
@@ -734,8 +842,10 @@ export default function MenuReviewPage() {
                                       <Label className="text-sm">Alternative Name</Label>
                                       <Input
                                         size={1}
-                                        value={type.alternativeName || ''}
-                                        onChange={(e) => updateAddOnType(addOnIndex, typeIndex, 'alternativeName', e.target.value)}
+                                        value={type.alternativeName || ""}
+                                        onChange={(e) =>
+                                          updateAddOnType(addOnIndex, typeIndex, "alternativeName", e.target.value)
+                                        }
                                         placeholder="Optional alternative name"
                                       />
                                     </div>
@@ -745,8 +855,10 @@ export default function MenuReviewPage() {
                                     <Label className="text-sm">Description</Label>
                                     <Input
                                       size={1}
-                                      value={type.description || ''}
-                                      onChange={(e) => updateAddOnType(addOnIndex, typeIndex, 'description', e.target.value)}
+                                      value={type.description || ""}
+                                      onChange={(e) =>
+                                        updateAddOnType(addOnIndex, typeIndex, "description", e.target.value)
+                                      }
                                       placeholder="Optional description"
                                     />
                                   </div>
@@ -755,7 +867,11 @@ export default function MenuReviewPage() {
                                   <div className="border-t pt-3">
                                     <div className="flex items-center justify-between mb-2">
                                       <h5 className="text-sm font-medium">Sub-Types</h5>
-                                      <Button onClick={() => addAddOnSubType(addOnIndex, typeIndex)} size="sm" variant="ghost">
+                                      <Button
+                                        onClick={() => addAddOnSubType(addOnIndex, typeIndex)}
+                                        size="sm"
+                                        variant="ghost"
+                                      >
                                         <Plus className="w-3 h-3 mr-1" />
                                         Add Sub-Type
                                       </Button>
@@ -763,14 +879,14 @@ export default function MenuReviewPage() {
 
                                     <div className="space-y-2">
                                       {type.subTypes?.map((subType, subTypeIndex) => (
-                                        <div key={subTypeIndex} className="border rounded p-2 bg-white">
+                                        <div key={subTypeIndex} className="border rounded p-2 bg-card">
                                           <div className="flex items-center justify-between mb-2">
                                             <span className="text-sm font-medium">Sub-Type {subTypeIndex + 1}</span>
                                             <Button
                                               variant="ghost"
                                               size="sm"
                                               onClick={() => removeAddOnSubType(addOnIndex, typeIndex, subTypeIndex)}
-                                              className="text-red-600 hover:text-red-800 p-1 h-4 w-4"
+                                              className="text-destructive hover:text-destructive hover:bg-destructive/10 p-1 h-4 w-4"
                                             >
                                               <X className="w-3 h-3" />
                                             </Button>
@@ -781,8 +897,16 @@ export default function MenuReviewPage() {
                                               <Label className="text-xs">Name</Label>
                                               <Input
                                                 size={1}
-                                                value={subType.name || ''}
-                                                onChange={(e) => updateAddOnSubType(addOnIndex, typeIndex, subTypeIndex, 'name', e.target.value)}
+                                                value={subType.name || ""}
+                                                onChange={(e) =>
+                                                  updateAddOnSubType(
+                                                    addOnIndex,
+                                                    typeIndex,
+                                                    subTypeIndex,
+                                                    "name",
+                                                    e.target.value,
+                                                  )
+                                                }
                                                 placeholder="e.g., Extra Cheese"
                                               />
                                             </div>
@@ -794,10 +918,12 @@ export default function MenuReviewPage() {
                                                 step="0.01"
                                                 min="0"
                                                 value={subType.price?.amount || 0}
-                                                onChange={(e) => updateAddOnSubType(addOnIndex, typeIndex, subTypeIndex, 'price', { 
-                                                  amount: Number.parseFloat(e.target.value) || 0, 
-                                                  currency: 'USD' 
-                                                })}
+                                                onChange={(e) =>
+                                                  updateAddOnSubType(addOnIndex, typeIndex, subTypeIndex, "price", {
+                                                    amount: Number.parseFloat(e.target.value) || 0,
+                                                    currency: "USD",
+                                                  })
+                                                }
                                                 placeholder="0.00"
                                               />
                                             </div>
@@ -808,8 +934,16 @@ export default function MenuReviewPage() {
                                               <Label className="text-xs">SKU</Label>
                                               <Input
                                                 size={1}
-                                                value={subType.sku || ''}
-                                                onChange={(e) => updateAddOnSubType(addOnIndex, typeIndex, subTypeIndex, 'sku', e.target.value)}
+                                                value={subType.sku || ""}
+                                                onChange={(e) =>
+                                                  updateAddOnSubType(
+                                                    addOnIndex,
+                                                    typeIndex,
+                                                    subTypeIndex,
+                                                    "sku",
+                                                    e.target.value,
+                                                  )
+                                                }
                                                 placeholder="Optional SKU"
                                               />
                                             </div>
@@ -818,9 +952,19 @@ export default function MenuReviewPage() {
                                               <div className="flex items-center space-x-2 pt-1">
                                                 <Switch
                                                   checked={subType.defaultSelection || false}
-                                                  onCheckedChange={(checked) => updateAddOnSubType(addOnIndex, typeIndex, subTypeIndex, 'defaultSelection', checked)}
+                                                  onCheckedChange={(checked) =>
+                                                    updateAddOnSubType(
+                                                      addOnIndex,
+                                                      typeIndex,
+                                                      subTypeIndex,
+                                                      "defaultSelection",
+                                                      checked,
+                                                    )
+                                                  }
                                                 />
-                                                <span className="text-xs text-gray-600">{subType.defaultSelection ? "Yes" : "No"}</span>
+                                                <span className="text-xs text-muted-foreground">
+                                                  {subType.defaultSelection ? "Yes" : "No"}
+                                                </span>
                                               </div>
                                             </div>
                                           </div>
@@ -829,8 +973,16 @@ export default function MenuReviewPage() {
                                             <Label className="text-xs">Description</Label>
                                             <Input
                                               size={1}
-                                              value={subType.description || ''}
-                                              onChange={(e) => updateAddOnSubType(addOnIndex, typeIndex, subTypeIndex, 'description', e.target.value)}
+                                              value={subType.description || ""}
+                                              onChange={(e) =>
+                                                updateAddOnSubType(
+                                                  addOnIndex,
+                                                  typeIndex,
+                                                  subTypeIndex,
+                                                  "description",
+                                                  e.target.value,
+                                                )
+                                              }
                                               placeholder="Optional description"
                                             />
                                           </div>
@@ -853,7 +1005,7 @@ export default function MenuReviewPage() {
                 <Button variant="outline" onClick={() => setIsProductDialogOpen(false)}>
                   Cancel
                 </Button>
-                <Button onClick={handleSaveProduct} className="bg-green-500 hover:bg-green-600">
+                <Button onClick={handleSaveProduct} className="bg-primary hover:bg-primary/90">
                   Save Changes
                 </Button>
               </div>
