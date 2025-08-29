@@ -6,14 +6,14 @@ import { useState, useRef, useEffect } from "react"
 import { Upload } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
 import { useRouter } from "next/navigation"
-import { usePDFParse } from "@/hooks/use-pdf-parse"
+import { useFileParser } from "@/hooks/use-file-parser"
 
 export default function HomePage() {
   const [isDragOver, setIsDragOver] = useState(false)
   const [isClient, setIsClient] = useState(false)
   const router = useRouter()
   const fileInputRef = useRef<HTMLInputElement>(null)
-  const { parsePDF, isParsing, result, error } = usePDFParse()
+  const { parseFile, loading, result, error } = useFileParser()
   
   // Use useEffect to set client state after hydration
   useEffect(() => {
@@ -25,17 +25,18 @@ export default function HomePage() {
     
     const file = files[0]
     
-    // Check if it's a PDF file
-    if (file.type === 'application/pdf') {
-      try {
-        await parsePDF(file)
-      } catch (error) {
-        console.error('Error parsing PDF:', error)
+    try {
+      // Use the unified file parser for all supported file types
+      const result = await parseFile(file)
+      
+      // If parsing is successful, we can proceed to menu review
+      if (result && result.text) {
+        console.log("File parsed successfully:", result.fileType, result.text.length, "characters")
+        // You can add logic here to process the extracted text
+        // For now, we'll show the results on the same page
       }
-    } else {
-      // For non-PDF files, keep existing behavior
-      console.log("Uploading file:", file.name)
-      router.push("/menu-review")
+    } catch (error) {
+      console.error('Error parsing file:', error)
     }
   }
 
@@ -89,27 +90,27 @@ export default function HomePage() {
                   </div>
                 </div>
                 <h3 className="text-lg font-medium text-gray-800 mb-2">Drop your menu file here, or click to browse</h3>
-                <p className="text-gray-500 mb-4">Supports PDF, JPG, PNG files up to 10MB</p>
+                <p className="text-gray-500 mb-4">Supports PDF (50MB), JPG, PNG, GIF, BMP, WebP, TIFF (10MB) files</p>
                 
                 {/* Hidden file input that gets triggered by the drop zone click */}
                 <input
                   ref={fileInputRef}
                   type="file"
                   className="hidden"
-                  accept=".pdf,.jpg,.jpeg,.png"
+                  accept=".pdf,.jpg,.jpeg,.png,.gif,.bmp,.webp,.tiff"
                   onChange={(e) => handleFileUpload(e.target.files)}
                 />
               </div>
             </CardContent>
           </Card>
 
-          {/* PDF Parsing Results - Only show on client side */}
-          {isClient && isParsing && (
+          {/* File Parsing Results - Only show on client side */}
+          {isClient && loading && (
             <Card className="mb-8">
               <CardContent className="p-6">
                 <div className="text-center">
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600 mx-auto mb-4"></div>
-                  <p className="text-gray-600">Parsing PDF...</p>
+                  <p className="text-gray-600">Processing file...</p>
                 </div>
               </CardContent>
             </Card>
@@ -120,7 +121,7 @@ export default function HomePage() {
             <Card className="mb-8 border-red-200 bg-red-50">
               <CardContent className="p-6">
                 <div className="text-center">
-                  <p className="text-red-600 font-medium">PDF Parsing Error</p>
+                  <p className="text-red-600 font-medium">File Processing Error</p>
                   <p className="text-red-500 text-sm mt-2">{error}</p>
                 </div>
               </CardContent>
@@ -132,12 +133,16 @@ export default function HomePage() {
             <Card className="mb-8 border-green-200 bg-green-50">
               <CardContent className="p-6">
                 <div className="text-center mb-4">
-                  <h3 className="text-lg font-medium text-green-800 mb-2">PDF Parsed Successfully!</h3>
-                  <p className="text-green-600">Pages: {result.pages}</p>
-                  {result.info && Object.keys(result.info).length > 0 && (
+                  <h3 className="text-lg font-medium text-green-800 mb-2">
+                    {result.fileType === 'pdf' ? 'PDF' : 'Image'} Processed Successfully!
+                  </h3>
+                  <p className="text-green-600">
+                    {result.fileType === 'pdf' ? `Pages: ${result.data?.pages || 'Unknown'}` : `Confidence: ${result.data?.confidence || 'Unknown'}%`}
+                  </p>
+                  {result.metadata && (
                     <p className="text-green-600 text-sm mt-1">
-                      {result.info.title && `Title: ${result.info.title}`}
-                      {result.info.author && ` • Author: ${result.info.author}`}
+                      File: {result.metadata.fileName} • Size: {Math.round(result.metadata.fileSize / 1024)}KB
+                      {result.metadata.processingTime && ` • Time: ${result.metadata.processingTime.toFixed(2)}ms`}
                     </p>
                   )}
                 </div>
@@ -145,7 +150,8 @@ export default function HomePage() {
                   <p className="text-sm text-gray-700 whitespace-pre-wrap">{result.text}</p>
                 </div>
                 <p className="text-xs text-gray-500 mt-2 text-center">
-                  Check browser console for full extracted text
+                  {result.text ? `${result.text.length} characters extracted` : 'No text extracted'}
+                  {result.fileType === 'image' && result.data?.confidence && ` • OCR Confidence: ${result.data.confidence.toFixed(1)}%`}
                 </p>
               </CardContent>
             </Card>

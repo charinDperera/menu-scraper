@@ -41,11 +41,9 @@ export class PDFService {
       // Convert File to ArrayBuffer
       const arrayBuffer = await file.arrayBuffer();
       
-      // Load the PDF document with disableWorker option as fallback
+      // Load the PDF document
       const loadingTask = pdfjsLib.getDocument({ 
-        data: arrayBuffer,
-        disableWorker: false,
-        useWorkerFetch: false
+        data: arrayBuffer
       });
       const pdf = await loadingTask.promise;
       
