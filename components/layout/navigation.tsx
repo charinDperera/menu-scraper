@@ -1,11 +1,41 @@
 "use client"
 
-import { Package, ShoppingCart, Settings, Plus } from "lucide-react"
+import { Package, ShoppingCart, Settings, Plus, FileText, Upload } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { useRouter } from "next/navigation"
+import { useRouter, usePathname } from "next/navigation"
 
 export function Navigation() {
   const router = useRouter()
+  const pathname = usePathname()
+
+  const navigationItems = [
+    {
+      path: '/',
+      label: 'Products',
+      icon: Package,
+      description: 'Product Converter'
+    },
+    {
+      path: '/llm-demo',
+      label: 'LLM Demo',
+      icon: FileText,
+      description: 'AI Processing'
+    },
+    {
+      path: '/apptizer-demo',
+      label: 'Apptizer API',
+      icon: Upload,
+      description: 'API Integration'
+    },
+    {
+      path: '/menu-review',
+      label: 'Menu Review',
+      icon: FileText,
+      description: 'Review Results'
+    }
+  ]
+
+  const isActive = (path: string) => pathname === path
 
   return (
     <>
@@ -59,28 +89,25 @@ export function Navigation() {
       {/* Navigation Tabs */}
       <div className="bg-white border-b px-6">
         <div className="flex space-x-8">
-          <button 
-            onClick={() => router.push('/')}
-            className="flex items-center space-x-2 py-4 border-b-2 border-green-500 text-green-600"
-          >
-            <Package className="w-4 h-4" />
-            <span>Products</span>
-          </button>
-          <button 
-            onClick={() => router.push('/llm-demo')}
-            className="flex items-center space-x-2 py-4 text-gray-500 hover:text-gray-700"
-          >
-            <span>LLM Demo</span>
-          </button>
-          <button className="flex items-center space-x-2 py-4 text-gray-500 hover:text-gray-700">
-            <span>Categories</span>
-          </button>
-          <button className="flex items-center space-x-2 py-4 text-gray-500 hover:text-gray-700">
-            <span>Add-On Groups</span>
-          </button>
-          <button className="flex items-center space-x-2 py-4 text-gray-500 hover:text-gray-700">
-            <span>Taxes</span>
-          </button>
+          {navigationItems.map((item) => {
+            const Icon = item.icon
+            const active = isActive(item.path)
+            
+            return (
+              <button 
+                key={item.path}
+                onClick={() => router.push(item.path)}
+                className={`flex items-center space-x-2 py-4 border-b-2 transition-colors duration-200 ${
+                  active 
+                    ? 'border-green-500 text-green-600' 
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+              >
+                <Icon className="w-4 h-4" />
+                <span>{item.label}</span>
+              </button>
+            )
+          })}
         </div>
       </div>
     </>
