@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { ArrowLeft, Edit2, Trash2, Save, Upload, Brain } from "lucide-react"
+import { ArrowLeft, Edit2, Trash2, Save, Upload, Brain, Plus, X, ChevronDown, ChevronRight } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -9,8 +9,9 @@ import { Badge } from "@/components/ui/badge"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
+import { Textarea } from "@/components/ui/textarea"
 import { useRouter } from "next/navigation"
-import { ProcessingResult, Product } from "@/types/product-model"
+import { ProcessingResult, Product, AddOn, AddOnType, AddOnSubType, Price } from "@/types/product-model"
 
 interface OriginalFileInfo {
   fileName: string;
@@ -32,6 +33,39 @@ function mapLLMProductToDisplayProduct(llmProduct: Product): Product {
   }
 }
 
+// Helper function to create a new add-on
+function createNewAddOn(): AddOn {
+  return {
+    groupId: `addon-${Date.now()}-${Math.random()}`,
+    name: '',
+    types: [],
+    mandatory: false,
+    minSelectionsRequired: 0,
+    maxSelectionsAllowed: 1,
+    priority: 0,
+    isActive: true,
+    isMultiSelectable: false,
+  }
+}
+
+// Helper function to create a new add-on type
+function createNewAddOnType(): AddOnType {
+  return {
+    name: '',
+    subTypes: [],
+  }
+}
+
+// Helper function to create a new add-on sub-type
+function createNewAddOnSubType(): AddOnSubType {
+  return {
+    name: '',
+    price: { amount: 0, currency: 'USD' },
+    defaultSelection: false,
+    isActive: true,
+  }
+}
+
 export default function MenuReviewPage() {
   const router = useRouter()
   const [editingProduct, setEditingProduct] = useState<Product | null>(null)
@@ -40,6 +74,7 @@ export default function MenuReviewPage() {
   const [llmResult, setLlmResult] = useState<ProcessingResult | null>(null)
   const [originalFileInfo, setOriginalFileInfo] = useState<OriginalFileInfo | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const [expandedAddOns, setExpandedAddOns] = useState<Set<string>>(new Set())
 
   useEffect(() => {
     // Load LLM processing results from sessionStorage
@@ -91,6 +126,110 @@ export default function MenuReviewPage() {
 
   const handleRemoveProduct = (productId: string) => {
     setProducts((prev) => prev.filter((product) => product.productId !== productId))
+  }
+
+  // Add-on management functions
+  const addAddOn = () => {
+    if (!editingProduct) return
+    const newAddOn = createNewAddOn()
+    setEditingProduct({
+      ...editingProduct,
+      addOns: [...(editingProduct.addOns || []), newAddOn]
+    })
+  }
+
+  const removeAddOn = (addOnIndex: number) => {
+    if (!editingProduct) return
+    const updatedAddOns = editingProduct.addOns?.filter((_, index) => index !== addOnIndex) || []
+    setEditingProduct({
+      ...editingProduct,
+      addOns: updatedAddOns
+    })
+  }
+
+  const updateAddOn = (addOnIndex: number, field: keyof AddOn, value: any) => {
+    if (!editingProduct) return
+    const updatedAddOns = [...(editingProduct.addOns || [])]
+    updatedAddOns[addOnIndex] = { ...updatedAddOns[addOnIndex], [field]: value }
+    setEditingProduct({
+      ...editingProduct,
+      addOns: updatedAddOns
+    })
+  }
+
+  const addAddOnType = (addOnIndex: number) => {
+    if (!editingProduct) return
+    const newType = createNewAddOnType()
+    const updatedAddOns = [...(editingProduct.addOns || [])]
+    updatedAddOns[addOnIndex].types = [...(updatedAddOns[addOnIndex].types || []), newType]
+    setEditingProduct({
+      ...editingProduct,
+      addOns: updatedAddOns
+    })
+  }
+
+  const removeAddOnType = (addOnIndex: number, typeIndex: number) => {
+    if (!editingProduct) return
+    const updatedAddOns = [...(editingProduct.addOns || [])]
+    updatedAddOns[addOnIndex].types = updatedAddOns[addOnIndex].types?.filter((_, index) => index !== typeIndex) || []
+    setEditingProduct({
+      ...editingProduct,
+      addOns: updatedAddOns
+    })
+  }
+
+  const updateAddOnType = (addOnIndex: number, typeIndex: number, field: keyof AddOnType, value: any) => {
+    if (!editingProduct) return
+    const updatedAddOns = [...(editingProduct.addOns || [])]
+    updatedAddOns[addOnIndex].types![typeIndex] = { ...updatedAddOns[addOnIndex].types![typeIndex], [field]: value }
+    setEditingProduct({
+      ...editingProduct,
+      addOns: updatedAddOns
+    })
+  }
+
+  const addAddOnSubType = (addOnIndex: number, typeIndex: number) => {
+    if (!editingProduct) return
+    const newSubType = createNewAddOnSubType()
+    const updatedAddOns = [...(editingProduct.addOns || [])]
+    updatedAddOns[addOnIndex].types![typeIndex].subTypes = [...(updatedAddOns[addOnIndex].types![typeIndex].subTypes || []), newSubType]
+    setEditingProduct({
+      ...editingProduct,
+      addOns: updatedAddOns
+    })
+  }
+
+  const removeAddOnSubType = (addOnIndex: number, typeIndex: number, subTypeIndex: number) => {
+    if (!editingProduct) return
+    const updatedAddOns = [...(editingProduct.addOns || [])]
+    updatedAddOns[addOnIndex].types![typeIndex].subTypes = updatedAddOns[addOnIndex].types![typeIndex].subTypes?.filter((_, index) => index !== subTypeIndex) || []
+    setEditingProduct({
+      ...editingProduct,
+      addOns: updatedAddOns
+    })
+  }
+
+  const updateAddOnSubType = (addOnIndex: number, typeIndex: number, subTypeIndex: number, field: keyof AddOnSubType, value: any) => {
+    if (!editingProduct) return
+    const updatedAddOns = [...(editingProduct.addOns || [])]
+    updatedAddOns[addOnIndex].types![typeIndex].subTypes![subTypeIndex] = { 
+      ...updatedAddOns[addOnIndex].types![typeIndex].subTypes![subTypeIndex], 
+      [field]: value 
+    }
+    setEditingProduct({
+      ...editingProduct,
+      addOns: updatedAddOns
+    })
+  }
+
+  const toggleAddOnExpansion = (addOnId: string) => {
+    const newExpanded = new Set(expandedAddOns)
+    if (newExpanded.has(addOnId)) {
+      newExpanded.delete(addOnId)
+    } else {
+      newExpanded.add(addOnId)
+    }
+    setExpandedAddOns(newExpanded)
   }
 
   if (isLoading) {
@@ -308,12 +447,13 @@ export default function MenuReviewPage() {
 
       {/* Product Edit Dialog */}
       <Dialog open={isProductDialogOpen} onOpenChange={setIsProductDialogOpen}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Edit Product</DialogTitle>
           </DialogHeader>
           {editingProduct && (
             <div className="space-y-6">
+              {/* Basic Product Information */}
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="productName">Product Name</Label>
@@ -335,10 +475,11 @@ export default function MenuReviewPage() {
 
               <div className="space-y-2">
                 <Label htmlFor="description">Description</Label>
-                <Input
+                <Textarea
                   id="description"
                   value={editingProduct.description || ''}
                   onChange={(e) => setEditingProduct({ ...editingProduct, description: e.target.value })}
+                  rows={3}
                 />
               </div>
 
@@ -426,7 +567,289 @@ export default function MenuReviewPage() {
                 </div>
               </div>
 
-              <div className="flex justify-end space-x-3">
+              {/* Add-ons Configuration */}
+              <div className="border-t pt-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-medium">Add-ons Configuration</h3>
+                  <Button onClick={addAddOn} size="sm" className="bg-blue-500 hover:bg-blue-600">
+                    <Plus className="w-4 h-4 mr-2" />
+                    Add Add-on Group
+                  </Button>
+                </div>
+
+                <div className="space-y-4">
+                  {editingProduct.addOns?.map((addOn, addOnIndex) => (
+                    <Card key={addOn.groupId} className="border-2">
+                      <CardHeader className="pb-3">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center space-x-2">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => toggleAddOnExpansion(addOn.groupId!)}
+                              className="p-1 h-6 w-6"
+                            >
+                              {expandedAddOns.has(addOn.groupId!) ? (
+                                <ChevronDown className="w-4 h-4" />
+                              ) : (
+                                <ChevronRight className="w-4 h-4" />
+                              )}
+                            </Button>
+                            <span className="font-medium">Add-on Group {addOnIndex + 1}</span>
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => removeAddOn(addOnIndex)}
+                            className="text-red-600 hover:text-red-800 p-1 h-6 w-6"
+                          >
+                            <X className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </CardHeader>
+
+                      {expandedAddOns.has(addOn.groupId!) && (
+                        <CardContent className="space-y-4">
+                          {/* Add-on Group Details */}
+                          <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                              <Label>Group Name</Label>
+                              <Input
+                                value={addOn.name}
+                                onChange={(e) => updateAddOn(addOnIndex, 'name', e.target.value)}
+                                placeholder="e.g., Toppings, Size, Extras"
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <Label>Alternative Name</Label>
+                              <Input
+                                value={addOn.alternativeName || ''}
+                                onChange={(e) => updateAddOn(addOnIndex, 'alternativeName', e.target.value)}
+                                placeholder="Optional alternative name"
+                              />
+                            </div>
+                          </div>
+
+                          <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                              <Label>Min Selections</Label>
+                              <Input
+                                type="number"
+                                min="0"
+                                value={addOn.minSelectionsRequired || 0}
+                                onChange={(e) => updateAddOn(addOnIndex, 'minSelectionsRequired', Number.parseInt(e.target.value) || 0)}
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <Label>Max Selections</Label>
+                              <Input
+                                type="number"
+                                min="1"
+                                value={addOn.maxSelectionsAllowed || 1}
+                                onChange={(e) => updateAddOn(addOnIndex, 'maxSelectionsAllowed', Number.parseInt(e.target.value) || 1)}
+                              />
+                            </div>
+                          </div>
+
+                          <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                              <Label>Priority</Label>
+                              <Input
+                                type="number"
+                                value={addOn.priority || 0}
+                                onChange={(e) => updateAddOn(addOnIndex, 'priority', Number.parseInt(e.target.value) || 0)}
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <Label>Active</Label>
+                              <div className="flex items-center space-x-2 pt-2">
+                                <Switch
+                                  checked={addOn.isActive !== false}
+                                  onCheckedChange={(checked) => updateAddOn(addOnIndex, 'isActive', checked)}
+                                />
+                                <span className="text-sm text-gray-600">{addOn.isActive !== false ? "Yes" : "No"}</span>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                              <Label>Mandatory</Label>
+                              <div className="flex items-center space-x-2 pt-2">
+                                <Switch
+                                  checked={addOn.mandatory || false}
+                                  onCheckedChange={(checked) => updateAddOn(addOnIndex, 'mandatory', checked)}
+                                />
+                                <span className="text-sm text-gray-600">{addOn.mandatory ? "Yes" : "No"}</span>
+                              </div>
+                            </div>
+                            <div className="space-y-2">
+                              <Label>Multi-Selectable</Label>
+                              <div className="flex items-center space-x-2 pt-2">
+                                <Switch
+                                  checked={addOn.isMultiSelectable || false}
+                                  onCheckedChange={(checked) => updateAddOn(addOnIndex, 'isMultiSelectable', checked)}
+                                />
+                                <span className="text-sm text-gray-600">{addOn.isMultiSelectable ? "Yes" : "No"}</span>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Add-on Types */}
+                          <div className="border-t pt-4">
+                            <div className="flex items-center justify-between mb-3">
+                              <h4 className="font-medium">Add-on Types</h4>
+                              <Button onClick={() => addAddOnType(addOnIndex)} size="sm" variant="outline">
+                                <Plus className="w-4 h-4 mr-2" />
+                                Add Type
+                              </Button>
+                            </div>
+
+                            <div className="space-y-3">
+                              {addOn.types?.map((type, typeIndex) => (
+                                <div key={typeIndex} className="border rounded-lg p-3 bg-gray-50">
+                                  <div className="flex items-center justify-between mb-3">
+                                    <span className="font-medium">Type {typeIndex + 1}</span>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() => removeAddOnType(addOnIndex, typeIndex)}
+                                      className="text-red-600 hover:text-red-800 p-1 h-6 w-6"
+                                    >
+                                      <X className="w-4 h-4" />
+                                    </Button>
+                                  </div>
+
+                                  <div className="grid grid-cols-2 gap-3 mb-3">
+                                    <div className="space-y-1">
+                                      <Label className="text-sm">Type Name</Label>
+                                      <Input
+                                        size={1}
+                                        value={type.name || ''}
+                                        onChange={(e) => updateAddOnType(addOnIndex, typeIndex, 'name', e.target.value)}
+                                        placeholder="e.g., Small, Medium, Large"
+                                      />
+                                    </div>
+                                    <div className="space-y-1">
+                                      <Label className="text-sm">Alternative Name</Label>
+                                      <Input
+                                        size={1}
+                                        value={type.alternativeName || ''}
+                                        onChange={(e) => updateAddOnType(addOnIndex, typeIndex, 'alternativeName', e.target.value)}
+                                        placeholder="Optional alternative name"
+                                      />
+                                    </div>
+                                  </div>
+
+                                  <div className="space-y-1 mb-3">
+                                    <Label className="text-sm">Description</Label>
+                                    <Input
+                                      size={1}
+                                      value={type.description || ''}
+                                      onChange={(e) => updateAddOnType(addOnIndex, typeIndex, 'description', e.target.value)}
+                                      placeholder="Optional description"
+                                    />
+                                  </div>
+
+                                  {/* Add-on Sub-Types */}
+                                  <div className="border-t pt-3">
+                                    <div className="flex items-center justify-between mb-2">
+                                      <h5 className="text-sm font-medium">Sub-Types</h5>
+                                      <Button onClick={() => addAddOnSubType(addOnIndex, typeIndex)} size="sm" variant="ghost">
+                                        <Plus className="w-3 h-3 mr-1" />
+                                        Add Sub-Type
+                                      </Button>
+                                    </div>
+
+                                    <div className="space-y-2">
+                                      {type.subTypes?.map((subType, subTypeIndex) => (
+                                        <div key={subTypeIndex} className="border rounded p-2 bg-white">
+                                          <div className="flex items-center justify-between mb-2">
+                                            <span className="text-sm font-medium">Sub-Type {subTypeIndex + 1}</span>
+                                            <Button
+                                              variant="ghost"
+                                              size="sm"
+                                              onClick={() => removeAddOnSubType(addOnIndex, typeIndex, subTypeIndex)}
+                                              className="text-red-600 hover:text-red-800 p-1 h-4 w-4"
+                                            >
+                                              <X className="w-3 h-3" />
+                                            </Button>
+                                          </div>
+
+                                          <div className="grid grid-cols-2 gap-2 mb-2">
+                                            <div className="space-y-1">
+                                              <Label className="text-xs">Name</Label>
+                                              <Input
+                                                size={1}
+                                                value={subType.name || ''}
+                                                onChange={(e) => updateAddOnSubType(addOnIndex, typeIndex, subTypeIndex, 'name', e.target.value)}
+                                                placeholder="e.g., Extra Cheese"
+                                              />
+                                            </div>
+                                            <div className="space-y-1">
+                                              <Label className="text-xs">Price</Label>
+                                              <Input
+                                                size={1}
+                                                type="number"
+                                                step="0.01"
+                                                min="0"
+                                                value={subType.price?.amount || 0}
+                                                onChange={(e) => updateAddOnSubType(addOnIndex, typeIndex, subTypeIndex, 'price', { 
+                                                  amount: Number.parseFloat(e.target.value) || 0, 
+                                                  currency: 'USD' 
+                                                })}
+                                                placeholder="0.00"
+                                              />
+                                            </div>
+                                          </div>
+
+                                          <div className="grid grid-cols-2 gap-2">
+                                            <div className="space-y-1">
+                                              <Label className="text-xs">SKU</Label>
+                                              <Input
+                                                size={1}
+                                                value={subType.sku || ''}
+                                                onChange={(e) => updateAddOnSubType(addOnIndex, typeIndex, subTypeIndex, 'sku', e.target.value)}
+                                                placeholder="Optional SKU"
+                                              />
+                                            </div>
+                                            <div className="space-y-1">
+                                              <Label className="text-xs">Default Selection</Label>
+                                              <div className="flex items-center space-x-2 pt-1">
+                                                <Switch
+                                                  checked={subType.defaultSelection || false}
+                                                  onCheckedChange={(checked) => updateAddOnSubType(addOnIndex, typeIndex, subTypeIndex, 'defaultSelection', checked)}
+                                                />
+                                                <span className="text-xs text-gray-600">{subType.defaultSelection ? "Yes" : "No"}</span>
+                                              </div>
+                                            </div>
+                                          </div>
+
+                                          <div className="space-y-1 mt-2">
+                                            <Label className="text-xs">Description</Label>
+                                            <Input
+                                              size={1}
+                                              value={subType.description || ''}
+                                              onChange={(e) => updateAddOnSubType(addOnIndex, typeIndex, subTypeIndex, 'description', e.target.value)}
+                                              placeholder="Optional description"
+                                            />
+                                          </div>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        </CardContent>
+                      )}
+                    </Card>
+                  ))}
+                </div>
+              </div>
+
+              <div className="flex justify-end space-x-3 border-t pt-6">
                 <Button variant="outline" onClick={() => setIsProductDialogOpen(false)}>
                   Cancel
                 </Button>
