@@ -148,6 +148,8 @@ export default function MenuReviewPage() {
   const addAddOn = () => {
     if (!editingProduct) return
     const newAddOn = createNewAddOn()
+    // Auto-expand new add-ons
+    setExpandedAddOns(prev => new Set([...prev, newAddOn.groupId!]))
     setEditingProduct({
       ...editingProduct,
       addOns: [...(editingProduct.addOns || []), newAddOn],
@@ -256,6 +258,49 @@ export default function MenuReviewPage() {
       newExpanded.add(addOnId)
     }
     setExpandedAddOns(newExpanded)
+  }
+
+  // Variant management functions
+  const addVariant = () => {
+    if (!editingProduct) return
+    const newVariant = {
+      name: '',
+      description: '',
+      price: { amount: 0, currency: 'USD' },
+      sku: '',
+    }
+    setEditingProduct({
+      ...editingProduct,
+      variants: {
+        ...editingProduct.variants,
+        types: [...(editingProduct.variants?.types || []), newVariant]
+      }
+    })
+  }
+
+  const removeVariant = (variantIndex: number) => {
+    if (!editingProduct) return
+    const updatedVariants = editingProduct.variants?.types?.filter((_, index) => index !== variantIndex) || []
+    setEditingProduct({
+      ...editingProduct,
+      variants: {
+        ...editingProduct.variants,
+        types: updatedVariants
+      }
+    })
+  }
+
+  const updateVariant = (variantIndex: number, field: string, value: any) => {
+    if (!editingProduct) return
+    const updatedVariants = [...(editingProduct.variants?.types || [])]
+    updatedVariants[variantIndex] = { ...updatedVariants[variantIndex], [field]: value }
+    setEditingProduct({
+      ...editingProduct,
+      variants: {
+        ...editingProduct.variants,
+        types: updatedVariants
+      }
+    })
   }
 
   if (isLoading) {
@@ -662,6 +707,84 @@ export default function MenuReviewPage() {
                       {editingProduct.isActive !== false ? "Yes" : "No"}
                     </span>
                   </div>
+                </div>
+              </div>
+
+              {/* Variants Configuration */}
+              <div className="border-t pt-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-medium">Variants Configuration</h3>
+                  <Button onClick={addVariant} size="sm" className="bg-primary hover:bg-primary/90">
+                    <Plus className="w-4 h-4 mr-2" />
+                    Add Variant
+                  </Button>
+                </div>
+
+                <div className="space-y-4">
+                  {editingProduct.variants?.types?.map((variant, variantIndex) => (
+                    <Card key={variantIndex} className="border border-border">
+                      <CardContent className="p-4">
+                        <div className="flex items-center justify-between mb-3">
+                          <span className="font-medium">Variant {variantIndex + 1}</span>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => removeVariant(variantIndex)}
+                            className="text-destructive hover:text-destructive hover:bg-destructive/10 p-1 h-6 w-6"
+                          >
+                            <X className="w-4 h-4" />
+                          </Button>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-4 mb-3">
+                          <div className="space-y-2">
+                            <Label className="text-sm">Variant Name</Label>
+                            <Input
+                              size={1}
+                              value={variant.name || ''}
+                              onChange={(e) => updateVariant(variantIndex, 'name', e.target.value)}
+                              placeholder="e.g., Small, Medium, Large"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label className="text-sm">Price</Label>
+                            <Input
+                              size={1}
+                              type="number"
+                              step="0.01"
+                              min="0"
+                              value={variant.price?.amount || 0}
+                              onChange={(e) => updateVariant(variantIndex, 'price', { 
+                                amount: Number.parseFloat(e.target.value) || 0, 
+                                currency: 'USD' 
+                              })}
+                              placeholder="0.00"
+                            />
+                          </div>
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label className="text-sm">SKU</Label>
+                          <Input
+                            size={1}
+                            value={variant.sku || ''}
+                            onChange={(e) => updateVariant(variantIndex, 'sku', e.target.value)}
+                            placeholder="Optional SKU"
+                          />
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label className="text-sm">Description</Label>
+                          <Input
+                            size={1}
+                            value={variant.description || ''}
+                            onChange={(e) => updateVariant(variantIndex, 'description', e.target.value)}
+                            placeholder="Optional description"
+                          />
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
                 </div>
               </div>
 
