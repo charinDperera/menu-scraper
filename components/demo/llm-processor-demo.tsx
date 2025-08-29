@@ -7,7 +7,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Badge } from '@/components/ui/badge'
 import { useLLMProcess } from '@/hooks/use-llm-process'
 import { useFileParser } from '@/hooks/use-file-parser'
-import { MenuProduct, MenuCategory } from '@/types/product-model'
+import { BulkProduct, BulkCategory, BulkTax, BulkAddonGroup } from '@/types/product-model'
 
 export function LLMProcessorDemo() {
   const [rawText, setRawText] = useState('')
@@ -148,14 +148,58 @@ export function LLMProcessorDemo() {
               </div>
             </div>
 
+            {/* Comprehensive Data Summary */}
+            <div className="grid grid-cols-2 gap-4 text-sm">
+              <div>
+                <span className="font-medium">Categories:</span> {lastResult.categories?.length || 0}
+              </div>
+              <div>
+                <span className="font-medium">Taxes:</span> {lastResult.taxes?.length || 0}
+              </div>
+              <div>
+                <span className="font-medium">Add-on Groups:</span> {lastResult.addonGroups?.length || 0}
+              </div>
+              <div>
+                <span className="font-medium">Total Items:</span> {lastResult.metadata.totalProducts + (lastResult.categories?.length || 0) + (lastResult.taxes?.length || 0) + (lastResult.addonGroups?.length || 0)}
+              </div>
+            </div>
+
             {/* Categories */}
-            {lastResult.metadata.categories && lastResult.metadata.categories.length > 0 && (
+            {lastResult.categories && lastResult.categories.length > 0 && (
               <div>
                 <h4 className="font-medium mb-2">Categories</h4>
                 <div className="flex flex-wrap gap-2">
-                  {lastResult.metadata.categories.map((category, index) => (
+                  {lastResult.categories.map((category, index) => (
                     <Badge key={index} variant="secondary">
                       {category.name}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Taxes */}
+            {lastResult.taxes && lastResult.taxes.length > 0 && (
+              <div>
+                <h4 className="font-medium mb-2">Taxes</h4>
+                <div className="flex flex-wrap gap-2">
+                  {lastResult.taxes.map((tax, index) => (
+                    <Badge key={index} variant="outline">
+                      {tax.name} ({tax.rate}%)
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Add-on Groups */}
+            {lastResult.addonGroups && lastResult.addonGroups.length > 0 && (
+              <div>
+                <h4 className="font-medium mb-2">Add-on Groups</h4>
+                <div className="flex flex-wrap gap-2">
+                  {lastResult.addonGroups.map((group, index) => (
+                    <Badge key={index} variant="secondary">
+                      {group.name} ({group.addonTypes?.length || 0} options)
                     </Badge>
                   ))}
                 </div>
@@ -171,18 +215,26 @@ export function LLMProcessorDemo() {
                     <div className="flex justify-between items-start mb-2">
                       <h5 className="font-medium">{product.name}</h5>
                       <span className="text-lg font-semibold text-green-600">
-                        ${product.price}
+                        ${product.price.toFixed(2)}
                       </span>
                     </div>
                     {product.description && (
                       <p className="text-sm text-gray-600 mb-2">{product.description}</p>
                     )}
                     <div className="flex flex-wrap gap-2">
-                      <Badge variant="outline">{product.category}</Badge>
-                      {product.isAlcoholic && <Badge variant="destructive">Alcoholic</Badge>}
-                      {product.dietaryInfo?.map((info, i) => (
-                        <Badge key={i} variant="secondary">{info}</Badge>
+                      {product.categoryNames?.map((category, i) => (
+                        <Badge key={i} variant="outline">{category}</Badge>
                       ))}
+                      {product.variant && (
+                        <Badge variant="secondary">
+                          {product.variant.variantTypes.length} variants
+                        </Badge>
+                      )}
+                      {product.addonGroupNames && product.addonGroupNames.length > 0 && (
+                        <Badge variant="secondary">
+                          {product.addonGroupNames.length} add-on groups
+                        </Badge>
+                      )}
                     </div>
                   </div>
                 ))}

@@ -198,14 +198,42 @@ export default function HomePage() {
                     </div>
                   </div>
 
+                  {/* Comprehensive Data Summary */}
+                  <div className="grid grid-cols-2 gap-4 text-sm mb-6 max-w-2xl mx-auto">
+                    <div className="bg-white p-3 rounded border">
+                      <span className="font-medium">Categories:</span> {lastResult.categories?.length || 0}
+                    </div>
+                    <div className="bg-white p-3 rounded border">
+                      <span className="font-medium">Taxes:</span> {lastResult.taxes?.length || 0}
+                    </div>
+                    <div className="bg-white p-3 rounded border">
+                      <span className="font-medium">Add-on Groups:</span> {lastResult.addonGroups?.length || 0}
+                    </div>
+                    <div className="bg-white p-3 rounded border">
+                      <span className="font-medium">Total Items:</span> {lastResult.metadata.totalProducts + (lastResult.categories?.length || 0) + (lastResult.taxes?.length || 0) + (lastResult.addonGroups?.length || 0)}
+                    </div>
+                  </div>
+
                   {/* Sample Products Preview */}
                   <div className="bg-white p-4 rounded border max-h-64 overflow-y-auto mb-6">
                     <h4 className="font-medium text-gray-800 mb-3">Sample Products Found:</h4>
                     <div className="space-y-2">
                       {lastResult.products.slice(0, 5).map((product, index) => (
-                        <div key={index} className="flex justify-between items-center p-2 bg-gray-50 rounded">
-                          <span className="text-sm font-medium">{product.name}</span>
-                          <span className="text-sm text-green-600">${product.price}</span>
+                        <div key={index} className="p-2 bg-gray-50 rounded">
+                          <div className="flex justify-between items-center mb-1">
+                            <span className="text-sm font-medium">{product.name}</span>
+                            <span className="text-sm text-green-600">${product.price.toFixed(2)}</span>
+                          </div>
+                          {product.categoryNames && product.categoryNames.length > 0 && (
+                            <div className="text-xs text-gray-500 mb-1">
+                              Categories: {product.categoryNames.join(', ')}
+                            </div>
+                          )}
+                          {product.variant && (
+                            <div className="text-xs text-gray-500">
+                              Variants: {product.variant.variantTypes.length} options
+                            </div>
+                          )}
                         </div>
                       ))}
                       {lastResult.products.length > 5 && (
